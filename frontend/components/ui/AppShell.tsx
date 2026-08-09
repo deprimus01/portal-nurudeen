@@ -96,7 +96,7 @@ export function AppShell({
     <>
       <div className="shell-sidebar-head">
         <div className="shell-brand">
-          <img src="/images/logo.png" alt="Nuruddeen Schools" className="shell-brand-mark" />
+          <img src="/images/logo.png" alt="Nuruddeen Schools" className="shell-logo-mark" />
           {!collapsed && (
             <div className="shell-brand-text">
               <div className="name">Nuruddeen Schools</div>
@@ -128,7 +128,9 @@ export function AppShell({
                   className={`shell-nav-item${active ? ' active' : ''}`}
                   title={collapsed ? item.label : undefined}
                 >
-                  <Icon size={17} strokeWidth={2} />
+                  <span className="shell-nav-icon">
+                    <Icon size={16} strokeWidth={2} />
+                  </span>
                   {!collapsed && <span>{item.label}</span>}
                 </Link>
               );

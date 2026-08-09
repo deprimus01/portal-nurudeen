@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ShieldCheck, BookOpen, GraduationCap, Users } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { ApiError } from '../../lib/api';
 import { useLanguage } from '../../lib/i18n/language-context';
@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,7 +35,12 @@ export default function LoginPage() {
 
   return (
     <div className="login-wrap">
+      <div className="login-bg-watermark" aria-hidden="true">
+        <img src="/images/logo.png" alt="" />
+      </div>
+
       <div className="login-left">
+        <div className="login-grid-overlay" />
         <div className="login-orb login-orb-1" />
         <div className="login-orb login-orb-2" />
 
@@ -46,7 +50,7 @@ export default function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: EASE }}
         >
-          <img src="/images/logo.png" alt="Nuruddeen Schools" className="shell-brand-mark" />
+          <img src="/images/logo.png" alt="Nuruddeen Schools" className="login-brand-logo" />
           <div className="login-brand-text">
             Nuruddeen Schools
             <span>Gusau, Zamfara State</span>
@@ -82,14 +86,6 @@ export default function LoginPage() {
         </motion.div>
       </div>
 
-      <div className="login-mobile-header">
-        <img src="/images/logo.png" alt="Nuruddeen Schools" className="shell-brand-mark" />
-        <div className="login-brand-text">
-          Nuruddeen Schools
-          <span>Gusau, Zamfara State</span>
-        </div>
-      </div>
-
       <div className="login-right">
         <motion.div
           className="card login-card"
@@ -98,12 +94,7 @@ export default function LoginPage() {
           transition={{ duration: 0.5, ease: EASE }}
         >
           <div className="login-top-logo">
-            <img
-              src="/images/logo.png"
-              alt="Nuruddeen Schools"
-              className="shell-brand-mark"
-              style={{ width: 34, height: 34, objectFit: 'contain' }}
-            />
+            <img src="/images/logo.png" alt="Nuruddeen Schools" className="login-card-logo" />
             <span>Nuruddeen Schools</span>
             <div className="login-theme-toggle">
               <LanguageSwitcher compact />
@@ -157,10 +148,6 @@ export default function LoginPage() {
             </div>
 
             <div className="login-row-between">
-              <label className="login-remember">
-                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-                {t('login.rememberMe')}
-              </label>
               <span className="login-forgot" title="Contact the school office to reset your password">
                 {t('login.forgotPassword')}
               </span>
@@ -182,11 +169,26 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="login-role-row">
-            <span className="badge">Admin</span>
-            <span className="badge">Teacher</span>
-            <span className="badge">Student</span>
-            <span className="badge">Guardian</span>
+          <div className="login-roles">
+            <span className="login-roles-label">One portal, four experiences</span>
+            <div className="login-role-row">
+              <span className="role-pill">
+                <ShieldCheck size={13} />
+                Admin
+              </span>
+              <span className="role-pill">
+                <BookOpen size={13} />
+                Teacher
+              </span>
+              <span className="role-pill">
+                <GraduationCap size={13} />
+                Student
+              </span>
+              <span className="role-pill">
+                <Users size={13} />
+                Guardian
+              </span>
+            </div>
           </div>
 
           <p className="login-footnote">
