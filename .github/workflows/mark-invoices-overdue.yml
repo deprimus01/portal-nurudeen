@@ -1,0 +1,27 @@
+name: Mark overdue invoices
+
+# Runs daily at 01:00 UTC — after Nigeria's business day (WAT = UTC+1) has
+# fully ended, so an invoice due "today" doesn't flip to OVERDUE while
+# there's still time in the day to pay it. Also runnable on demand via the
+# Actions tab for testing without waiting for the schedule.
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  mark-overdue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call mark-overdue-invoices endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.BACKEND_URL }}/api/cron/mark-overdue-invoices" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "$body"
+          if [ "$http_code" -ge 400 ]; then
+            echo "Request failed with status $http_code"
+            exit 1
+          fi
