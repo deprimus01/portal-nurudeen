@@ -5,6 +5,7 @@ import { CheckSquare, GraduationCap, Users } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { QuickAction } from '../../components/ui/QuickAction';
+import { WelcomeCard } from '../../components/ui/WelcomeCard';
 import { useLanguage } from '../../lib/i18n/language-context';
 
 export default function TeacherDashboardPage() {
@@ -15,8 +16,11 @@ export default function TeacherDashboardPage() {
 
   return (
     <div>
-      <h1 className="page-title">{t('pages.teacherDashboard.welcome', { name: profile?.firstName || t('role.teacher') })}</h1>
-      <p className="page-sub">Here&apos;s a quick look at your classes and common tasks.</p>
+      <WelcomeCard
+        name={profile?.firstName || t('role.teacher')}
+        subtitle="Here's a quick look at your classes and common tasks."
+        icon={GraduationCap}
+      />
 
       <div className="panel" style={{ marginBottom: 20 }}>
         <div className="panel-head">

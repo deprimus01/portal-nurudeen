@@ -50,6 +50,9 @@ export interface Dictionary {
     filter: string;
     all: string;
     total: string;
+    greetingMorning: string;
+    greetingAfternoon: string;
+    greetingEvening: string;
   };
   fields: {
     name: string;
@@ -220,6 +223,9 @@ const en: Dictionary = {
     filter: 'Filter',
     all: 'All',
     total: 'Total',
+    greetingMorning: 'Good morning',
+    greetingAfternoon: 'Good afternoon',
+    greetingEvening: 'Good evening',
   },
   fields: {
     name: 'Name',
@@ -392,6 +398,9 @@ const ha: Dictionary = {
     filter: 'Tace',
     all: 'Duka',
     total: 'Jimla',
+    greetingMorning: 'Ina kwana',
+    greetingAfternoon: 'Ina wuni',
+    greetingEvening: 'Ina yamma',
   },
   fields: {
     name: 'Suna',
@@ -564,6 +573,9 @@ const yo: Dictionary = {
     filter: 'Ṣàyẹ̀wò',
     all: 'Gbogbo',
     total: 'Àpapọ̀',
+    greetingMorning: 'Ẹ kú àárọ̀',
+    greetingAfternoon: 'Ẹ kú ọ̀sán',
+    greetingEvening: 'Ẹ kú alẹ́',
   },
   fields: {
     name: 'Orúkọ',

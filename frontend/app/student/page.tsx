@@ -3,6 +3,7 @@
 import { BarChart3, CheckSquare, Clock, Megaphone, UserCircle } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { QuickAction } from '../../components/ui/QuickAction';
+import { WelcomeCard } from '../../components/ui/WelcomeCard';
 import { useLanguage } from '../../lib/i18n/language-context';
 
 interface StudentProfile {
@@ -19,8 +20,11 @@ export default function StudentDashboardPage() {
 
   return (
     <div>
-      <h1 className="page-title">{t('pages.studentDashboard.welcome', { name: profile?.firstName || t('role.student') })}</h1>
-      <p className="page-sub">Your details and shortcuts to your timetable, attendance and results.</p>
+      <WelcomeCard
+        name={profile?.firstName || t('role.student')}
+        subtitle="Your details and shortcuts to your timetable, attendance and results."
+        icon={UserCircle}
+      />
 
       <div className="panel" style={{ marginBottom: 20 }}>
         <div className="panel-head">

@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Clock,
   FileText,
+  LayoutDashboard,
   Layers,
   Megaphone,
   UserPlus,
@@ -20,6 +21,8 @@ import { api } from '../../lib/api';
 import type { Student, Staff, SchoolClass } from '../../lib/types';
 import { StatCard } from '../../components/ui/StatCard';
 import { QuickAction } from '../../components/ui/QuickAction';
+import { WelcomeCard } from '../../components/ui/WelcomeCard';
+import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 
 interface Subject {
@@ -28,6 +31,8 @@ interface Subject {
 
 export default function AdminDashboardPage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const profile = user?.profile as { firstName?: string; lastName?: string } | null;
   const [counts, setCounts] = useState<{
     students: number;
     staff: number;
@@ -55,8 +60,11 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="page-title">{t('nav.dashboard')}</h1>
-      <p className="page-sub">A quick overview of your school, and shortcuts to common tasks.</p>
+      <WelcomeCard
+        name={profile?.firstName || t('role.admin')}
+        subtitle="A quick overview of your school, and shortcuts to common tasks."
+        icon={LayoutDashboard}
+      />
 
       <div className="stat-grid">
         <StatCard label={t('nav.students')} value={counts?.students} href="/admin/students" icon={Users} accent="blue" index={0} />

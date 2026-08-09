@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, ShieldCheck, BookOpen, GraduationCap, Users } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { ApiError } from '../../lib/api';
 import { useLanguage } from '../../lib/i18n/language-context';
-import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { useTheme } from '../../lib/theme-context';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -14,6 +14,14 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 export default function LoginPage() {
   const { login } = useAuth();
   const { t } = useLanguage();
+  const { theme, setTheme } = useTheme();
+
+  // Login screen is light-mode only, regardless of the visitor's stored
+  // theme preference (no dark-mode toggle is shown here).
+  useEffect(() => {
+    if (theme !== 'light') setTheme('light');
+  }, [theme, setTheme]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -93,16 +101,19 @@ export default function LoginPage() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.5, ease: EASE }}
         >
-          <div className="login-top-logo">
-            <img src="/images/logo.png" alt="Nuruddeen Schools" className="login-card-logo" />
-            <span>Nuruddeen Schools</span>
-            <div className="login-theme-toggle">
-              <LanguageSwitcher compact />
-              <ThemeToggle compact />
-            </div>
+          <div className="login-card-controls">
+            <LanguageSwitcher compact />
           </div>
-          <h2>{t('login.welcomeBack')}</h2>
-          <p className="login-sub">{t('login.signInSubtitle')}</p>
+
+          <div className="login-brand-block">
+            <div className="login-logo-wrap">
+              <div className="login-logo-glow" />
+              <img src="/images/logo.png" alt="Nuruddeen Schools" className="login-logo-img" />
+            </div>
+            <div className="login-card-eyebrow">Nuruddeen Schools</div>
+            <h2>{t('login.welcomeBack')}</h2>
+            <p className="login-sub">{t('login.signInSubtitle')}</p>
+          </div>
 
           <form onSubmit={handleSubmit}>
             <div className="field">

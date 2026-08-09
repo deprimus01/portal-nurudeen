@@ -5,6 +5,7 @@ import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { QuickAction } from '../../components/ui/QuickAction';
+import { WelcomeCard } from '../../components/ui/WelcomeCard';
 
 interface GuardianProfile {
   firstName?: string;
@@ -27,8 +28,11 @@ export default function GuardianDashboardPage() {
 
   return (
     <div>
-      <h1 className="page-title">{t('guardianDashboard.welcome', { name: profile?.firstName || t('role.guardian') })}</h1>
-      <p className="page-sub">{children.length !== 1 ? t('guardianDashboard.trackChildren') : t('guardianDashboard.trackChild')}</p>
+      <WelcomeCard
+        name={profile?.firstName || t('role.guardian')}
+        subtitle={children.length !== 1 ? t('guardianDashboard.trackChildren') : t('guardianDashboard.trackChild')}
+        icon={Users}
+      />
 
       <div className="panel" style={{ marginBottom: 20 }}>
         <div className="panel-head">
