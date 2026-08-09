@@ -123,6 +123,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       userEmail={user.email}
       onLogout={logout}
       mobilePrimaryHrefs={MOBILE_PRIMARY}
+      settingsHref="/admin/settings"
     >
       {children}
     </AppShell>

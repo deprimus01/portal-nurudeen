@@ -40,6 +40,8 @@ interface AppShellProps {
   children: React.ReactNode;
   /** hrefs shown in the mobile bottom nav (max 4) - defaults to first 4 items across all groups */
   mobilePrimaryHrefs?: string[];
+  /** where the profile-menu "Settings" item links to */
+  settingsHref?: string;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -59,6 +61,7 @@ export function AppShell({
   onLogout,
   children,
   mobilePrimaryHrefs,
+  settingsHref,
 }: AppShellProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
@@ -138,13 +141,6 @@ export function AppShell({
           </div>
         ))}
       </nav>
-
-      <div className="shell-sidebar-foot">
-        <button type="button" className="shell-nav-item shell-logout" onClick={onLogout}>
-          <LogOut size={17} />
-          {!collapsed && <span>{t('common.logout')}</span>}
-        </button>
-      </div>
     </>
   );
 
@@ -235,9 +231,19 @@ export function AppShell({
                         {userEmail && <div className="prole">{userEmail}</div>}
                       </div>
                     </div>
-                    <div className="shell-profile-menu-item disabled">
-                      <Settings size={15} /> {t('common.settings')}
-                    </div>
+                    {settingsHref ? (
+                      <Link
+                        href={settingsHref}
+                        className="shell-profile-menu-item"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        <Settings size={15} /> {t('common.settings')}
+                      </Link>
+                    ) : (
+                      <div className="shell-profile-menu-item disabled">
+                        <Settings size={15} /> {t('common.settings')}
+                      </div>
+                    )}
                     <div className="shell-profile-menu-item danger" onClick={onLogout}>
                       <LogOut size={15} /> {t('common.logout')}
                     </div>

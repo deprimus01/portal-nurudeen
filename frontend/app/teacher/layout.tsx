@@ -77,6 +77,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       userEmail={user.email}
       onLogout={logout}
       mobilePrimaryHrefs={MOBILE_PRIMARY}
+      settingsHref="/teacher/settings"
     >
       {children}
     </AppShell>

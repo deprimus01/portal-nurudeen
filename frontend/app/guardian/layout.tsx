@@ -63,6 +63,7 @@ export default function GuardianLayout({ children }: { children: React.ReactNode
       userEmail={user.email}
       onLogout={logout}
       mobilePrimaryHrefs={MOBILE_PRIMARY}
+      settingsHref="/guardian/settings"
     >
       {children}
     </AppShell>

@@ -48,7 +48,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="auth-shell">
-      <div className="login-theme-toggle">
+      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
         <ThemeToggle />
       </div>
       <motion.div
@@ -57,14 +57,14 @@ export default function ResetPasswordPage() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: EASE }}
       >
-        <div className="login-top-logo">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
           <div
             className="shell-brand-mark"
             style={{ width: 34, height: 34, fontSize: 13, background: 'rgba(0,85,251,0.12)', color: 'var(--blue)' }}
           >
             <ShieldCheck size={16} />
           </div>
-          <span>Security check</span>
+          <span style={{ fontWeight: 700, fontFamily: "'Lexend', sans-serif", fontSize: '14.5px' }}>Security check</span>
         </div>
         <h2 style={{ fontSize: 22, marginBottom: 6 }}>Set a new password</h2>
         <p className="login-sub">This is your first login - please set a permanent password before continuing.</p>

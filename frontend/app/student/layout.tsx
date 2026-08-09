@@ -63,6 +63,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       userEmail={user.email}
       onLogout={logout}
       mobilePrimaryHrefs={MOBILE_PRIMARY}
+      settingsHref="/student/settings"
     >
       {children}
     </AppShell>
