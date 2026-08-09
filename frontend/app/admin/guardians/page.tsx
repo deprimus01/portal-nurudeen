@@ -114,6 +114,7 @@ export default function GuardiansPage() {
         ) : guardians.length === 0 ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.noResults')}</p>
         ) : (
+          <div className="table-wrap">
           <table>
             <thead>
               <tr>
@@ -134,6 +135,7 @@ export default function GuardiansPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

@@ -77,6 +77,7 @@ export default function GuardianAttendancePage() {
         ) : records.length === 0 ? (
           <p style={{ color: 'var(--muted)' }}>No attendance recorded yet.</p>
         ) : (
+          <div className="table-wrap">
           <table>
             <thead><tr><th>Date</th><th>Status</th></tr></thead>
             <tbody>
@@ -92,6 +93,7 @@ export default function GuardianAttendancePage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

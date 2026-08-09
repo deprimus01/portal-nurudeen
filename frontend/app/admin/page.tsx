@@ -97,7 +97,7 @@ export default function AdminDashboardPage() {
             {
               href: '/admin/students',
               icon: ClipboardList,
-              text: 'Enroll students — guardian portal accounts are created automatically',
+              text: 'Enroll students - guardian portal accounts are created automatically',
             },
           ].map((step, i) => {
             const Icon = step.icon;

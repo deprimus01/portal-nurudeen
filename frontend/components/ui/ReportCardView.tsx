@@ -64,7 +64,7 @@ export function ReportCardView({ report, allowPrint = true }: { report: ReportCa
 
         {!report.complete && (
           <p className="error-text" style={{ marginTop: 0 }}>
-            Not all subject scores have been entered yet — this report card is incomplete.
+            Not all subject scores have been entered yet - this report card is incomplete.
           </p>
         )}
 

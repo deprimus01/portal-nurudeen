@@ -6,13 +6,13 @@ import { ServiceWorkerRegistrar } from '../components/ServiceWorkerRegistrar';
 import './globals.css';
 
 // Every page in this app is client-rendered behind an auth check anyway, so
-// there's little to gain from static prerendering — and it's required here:
+// there's little to gain from static prerendering - and it's required here:
 // a nonce-based CSP (see middleware.ts) can only be embedded in HTML that's
 // rendered per-request, not in a build-time-cached static page.
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Nuruddeen Schools Gusau — Portal',
+  title: 'Nuruddeen Schools Gusau - Portal',
   description: 'Student records, attendance, results, and fees for Nuruddeen Schools Gusau.',
 };
 

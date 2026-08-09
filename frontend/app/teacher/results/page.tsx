@@ -26,7 +26,7 @@ export default function TeacherResultsPage() {
       {mySubjects.length === 0 ? (
         <div className="card">
           <p style={{ color: 'var(--muted)' }}>
-            You&apos;re not assigned to teach any subjects yet — ask an admin to assign you under Staff.
+            You&apos;re not assigned to teach any subjects yet - ask an admin to assign you under Staff.
           </p>
         </div>
       ) : loading ? (
@@ -35,7 +35,7 @@ export default function TeacherResultsPage() {
         <div className="card"><p style={{ color: 'var(--muted)' }}>No exams have been created yet.</p></div>
       ) : (
         <ResultsEntry
-          examOptions={exams.map((e: any) => ({ id: e.id, label: `${e.class?.name} — ${e.name} (${e.term?.session?.name} ${e.term?.name})` }))}
+          examOptions={exams.map((e: any) => ({ id: e.id, label: `${e.class?.name} - ${e.name} (${e.term?.session?.name} ${e.term?.name})` }))}
           subjectOptions={mySubjects}
         />
       )}

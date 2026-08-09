@@ -93,6 +93,7 @@ export default function AcademicPage() {
             <button className="btn" type="submit" disabled={submitting}>Save</button>
           </form>
         )}
+        <div className="table-wrap">
         <table>
           <thead><tr><th>Name</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
           <tbody>
@@ -106,6 +107,7 @@ export default function AcademicPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="card">
@@ -132,6 +134,7 @@ export default function AcademicPage() {
           </form>
         )}
         {error && <p className="error-text">{error}</p>}
+        <div className="table-wrap">
         <table>
           <thead><tr><th>Term</th><th>Session</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
           <tbody>
@@ -146,6 +149,7 @@ export default function AcademicPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

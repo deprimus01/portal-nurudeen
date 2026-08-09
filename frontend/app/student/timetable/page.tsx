@@ -38,7 +38,7 @@ export default function StudentTimetablePage() {
       <TimetableGrid
         slots={slots}
         loading={loading}
-        emptyMessage="Nothing on your timetable yet — check back once your class schedule is set up."
+        emptyMessage="Nothing on your timetable yet - check back once your class schedule is set up."
         subLabel={(slot) => ((slot as any).staff ? `${(slot as any).staff.firstName} ${(slot as any).staff.lastName}` : undefined)}
       />
     </div>

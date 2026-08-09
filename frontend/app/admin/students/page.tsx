@@ -169,16 +169,16 @@ export default function StudentsPage() {
             exit={{ opacity: 0, height: 0, marginBottom: 0, padding: 0 }}
           >
             <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle2 size={16} color="var(--success)" /> Portal account(s) created — credentials emailed automatically where possible:
+              <CheckCircle2 size={16} color="var(--success)" /> Portal account(s) created - credentials emailed automatically where possible:
             </strong>
             <ul style={{ fontSize: '0.9rem' }}>
               {lastCredentials.map((c) => (
-                <li key={c.email}>{c.email} — temporary password: <code className="mono">{c.tempPassword}</code></li>
+                <li key={c.email}>{c.email} - temporary password: <code className="mono">{c.tempPassword}</code></li>
               ))}
             </ul>
             <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
               Shown here in case an email doesn&apos;t land (student login addresses are synthetic
-              and never receive email — relay those credentials manually). SMS delivery isn&apos;t
+              and never receive email - relay those credentials manually). SMS delivery isn&apos;t
               wired up yet, so email is the only automatic channel where a real address exists. This
               won&apos;t be shown again.
             </p>
@@ -264,7 +264,7 @@ export default function StudentsPage() {
                   <select value={row.guardianId || ''} onChange={(e) => updateGuardianRow(i, { guardianId: e.target.value })} required>
                     <option value="" disabled>Select guardian…</option>
                     {guardianOptions.map((g) => (
-                      <option key={g.id} value={g.id}>{g.firstName} {g.lastName} — {g.phone}</option>
+                      <option key={g.id} value={g.id}>{g.firstName} {g.lastName} - {g.phone}</option>
                     ))}
                   </select>
                 ) : (

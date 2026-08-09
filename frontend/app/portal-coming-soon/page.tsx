@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Compass } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 
-// Unreachable in normal use now — every defined role (Admin, Teacher,
+// Unreachable in normal use now - every defined role (Admin, Teacher,
 // Guardian, Student) has a real portal and gets routed there. This stays
 // only as a generic fallback for an unrecognized/future role.
 export default function PortalComingSoonPage() {
@@ -33,7 +33,7 @@ export default function PortalComingSoonPage() {
         </div>
         <h1 style={{ fontSize: '1.1rem' }}>Portal access coming soon</h1>
         <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginTop: 6 }}>
-          There isn&apos;t a portal view for your account type yet. You&apos;re signed in — contact
+          There isn&apos;t a portal view for your account type yet. You&apos;re signed in - contact
           the school office if this looks wrong.
         </p>
         <button className="btn btn-outline" onClick={logout} style={{ marginTop: '1.25rem' }}>

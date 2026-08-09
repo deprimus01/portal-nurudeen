@@ -58,7 +58,7 @@ export default function ClassSubjectsPage() {
         <div>
           <h1 style={{ fontSize: '1.4rem', marginBottom: '0.2rem' }}>{t('pages.classSubjects.title')}</h1>
           <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: 0 }}>
-            Which subjects belong to each class — report cards use this to know what to expect scores for.
+            Which subjects belong to each class - report cards use this to know what to expect scores for.
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Backend API origin — CSP connect-src must explicitly allow this since the
+// Backend API origin - CSP connect-src must explicitly allow this since the
 // frontend calls it cross-origin (see lib/api.ts / NEXT_PUBLIC_API_URL).
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 const IS_DEV = process.env.NODE_ENV !== 'production';
@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
     `object-src 'none'`,
     `frame-ancestors 'none'`,
     `form-action 'self'`,
-    // 'unsafe-eval' is only needed for Next.js dev-mode HMR/React Refresh —
+    // 'unsafe-eval' is only needed for Next.js dev-mode HMR/React Refresh -
     // never included in a production build.
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${IS_DEV ? ` 'unsafe-eval'` : ''}`,
     // React sets element.style via the CSSOM (not markup), which most
@@ -37,7 +37,7 @@ export function middleware(request: NextRequest) {
   requestHeaders.set('x-nonce', nonce);
   // Next.js's own renderer reads the nonce back out of this *request*
   // header (not the response) to auto-nonce its hydration/streaming
-  // scripts — both sets below are required.
+  // scripts - both sets below are required.
   requestHeaders.set('Content-Security-Policy', csp);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });

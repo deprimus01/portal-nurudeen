@@ -7,7 +7,7 @@ import type { Flag, FlagsResponse, SchoolClass } from '../lib/types';
 import { EmptyState } from './ui/EmptyState';
 import { useLanguage } from '../lib/i18n/language-context';
 
-// Shared by /admin/flags and /teacher/flags — the backend already scopes
+// Shared by /admin/flags and /teacher/flags - the backend already scopes
 // results to the caller's role (Teacher only ever sees their own assigned
 // classes; Admin sees everything, or one class if filtered), so this
 // component doesn't need to know which role it's rendering for.
@@ -46,7 +46,7 @@ export function FlagsPanel({ showClassFilter }: { showClassFilter: boolean }) {
         <div>
           <h1 className="page-title" style={{ marginBottom: 4 }}>{t('pages.flags.title')}</h1>
           <p className="page-sub" style={{ margin: 0 }}>
-            Students with a notable drop in attendance or exam performance, computed from actual records —
+            Students with a notable drop in attendance or exam performance, computed from actual records -
             not AI-generated, just the numbers.
           </p>
         </div>

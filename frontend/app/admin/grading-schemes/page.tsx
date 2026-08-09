@@ -37,7 +37,7 @@ export default function GradingSchemesPage() {
     setBands((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   }
 
-  // Mirrors the server-side check in createGradingSchemeSchema — catches
+  // Mirrors the server-side check in createGradingSchemeSchema - catches
   // min > max and overlapping bands before the request round-trip.
   function findBandError(rows: GradingBand[]): string | null {
     for (let i = 0; i < rows.length; i++) {

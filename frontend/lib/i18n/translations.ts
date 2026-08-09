@@ -9,11 +9,11 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 // Best-effort translations, not reviewed by a native speaker of either
-// language — see the note in language-context.tsx. Covers app chrome
+// language - see the note in language-context.tsx. Covers app chrome
 // (navigation, page titles/subtitles, common actions, form field labels,
-// status badges) across every role's pages. Deeply dynamic content —
+// status badges) across every role's pages. Deeply dynamic content -
 // admin-authored announcement/message text, specific validation error
-// strings, tooltips — is intentionally out of scope; it falls back to
+// strings, tooltips - is intentionally out of scope; it falls back to
 // English automatically (see t() in language-context.tsx) rather than
 // being silently wrong.
 export interface Dictionary {
@@ -314,12 +314,12 @@ const en: Dictionary = {
     signIn: 'Sign in',
     headline: "Every learner's journey, in one place.",
     subheadline:
-      'Attendance, results, and communication for students, guardians, teachers and administrators — unified in a single portal.',
+      'Attendance, results, and communication for students, guardians, teachers and administrators - unified in a single portal.',
     portalsInOneSystem: 'Portals in one system',
     accessAnywhere: 'Access, anywhere',
     noAccount: 'No account?',
     inviteOnlyNotice:
-      'Portal access is invite-only — the school office creates your account when your child is enrolled (or when you join as staff).',
+      'Portal access is invite-only - the school office creates your account when your child is enrolled (or when you join as staff).',
   },
   guardianDashboard: {
     welcome: 'Welcome, {{name}}',
@@ -486,12 +486,12 @@ const ha: Dictionary = {
     signIn: 'Shiga',
     headline: 'Tafiyar kowane dalibi, a wuri guda.',
     subheadline:
-      'Halarta, sakamako, da sadarwa ga dalibai, iyaye, malamai da shugabanni — duk a dandali guda.',
+      'Halarta, sakamako, da sadarwa ga dalibai, iyaye, malamai da shugabanni - duk a dandali guda.',
     portalsInOneSystem: 'Dandalai a tsarin guda',
     accessAnywhere: "Samun dama, ko'ina",
     noAccount: 'Babu asusu?',
     inviteOnlyNotice:
-      "Shiga dandalin yana ta gayyata kawai — ofishin makaranta ne zai kirkiro asusun ku lokacin da aka yi wa ɗan/'yar ku rajista (ko lokacin da kuka shiga a matsayin ma'aikaci).",
+      "Shiga dandalin yana ta gayyata kawai - ofishin makaranta ne zai kirkiro asusun ku lokacin da aka yi wa ɗan/'yar ku rajista (ko lokacin da kuka shiga a matsayin ma'aikaci).",
   },
   guardianDashboard: {
     welcome: 'Barka da zuwa, {{name}}',
@@ -658,12 +658,12 @@ const yo: Dictionary = {
     signIn: 'Wọlé',
     headline: 'Ìrìnàjò akẹ́kọ̀ọ́ kọ̀ọ̀kan, ní ibi kan.',
     subheadline:
-      'Wíwá sí kíláàsì, àbájáde, àti ìbánisọ̀rọ̀ fún akẹ́kọ̀ọ́, òbí, olùkọ́ àti alábòójútó — gbogbo rẹ̀ ní pọ́tà kan.',
+      'Wíwá sí kíláàsì, àbájáde, àti ìbánisọ̀rọ̀ fún akẹ́kọ̀ọ́, òbí, olùkọ́ àti alábòójútó - gbogbo rẹ̀ ní pọ́tà kan.',
     portalsInOneSystem: 'Pọ́tà nínú ètò kan',
     accessAnywhere: 'Wọlé láti ibikíbi',
     noAccount: 'Kò sí àkántì?',
     inviteOnlyNotice:
-      'Wíwọlé sí pọ́tà jẹ́ nípa ìkésíni nìkan — ọ́físì ilé-ìwé ni yóò ṣẹ̀dá àkántì rẹ nígbà tí a bá forúkọsílẹ̀ ọmọ rẹ (tàbí nígbà tí o bá dara pọ̀ gẹ́gẹ́ bí òṣìṣẹ́).',
+      'Wíwọlé sí pọ́tà jẹ́ nípa ìkésíni nìkan - ọ́físì ilé-ìwé ni yóò ṣẹ̀dá àkántì rẹ nígbà tí a bá forúkọsílẹ̀ ọmọ rẹ (tàbí nígbà tí o bá dara pọ̀ gẹ́gẹ́ bí òṣìṣẹ́).',
   },
   guardianDashboard: {
     welcome: 'Ẹ káàbọ̀, {{name}}',

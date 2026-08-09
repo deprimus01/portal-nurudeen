@@ -28,7 +28,7 @@ export default function AdminResultsPage() {
         <div className="card"><p style={{ color: 'var(--muted)' }}>Create an exam first under Exams.</p></div>
       ) : (
         <ResultsEntry
-          examOptions={exams.map((e: any) => ({ id: e.id, label: `${e.class?.name} — ${e.name} (${e.term?.session?.name} ${e.term?.name})` }))}
+          examOptions={exams.map((e: any) => ({ id: e.id, label: `${e.class?.name} - ${e.name} (${e.term?.session?.name} ${e.term?.name})` }))}
           subjectOptions={subjects}
         />
       )}

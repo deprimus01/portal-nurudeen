@@ -48,7 +48,7 @@ export default function AdminAiReportsPage() {
       <h1 className="page-title">{t('pages.aiReports.title')}</h1>
       <p className="page-sub">
         Ask a question in plain English. This only answers a fixed set of supported report types (attendance,
-        exam averages, fees, enrollment counts) — it can&apos;t run arbitrary queries against the database.
+        exam averages, fees, enrollment counts) - it can&apos;t run arbitrary queries against the database.
       </p>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -120,7 +120,7 @@ export default function AdminAiReportsPage() {
               )}
               {result.truncated && (
                 <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginTop: '0.6rem' }}>
-                  Showing the first {rows.length} results — the full match set is larger.
+                  Showing the first {rows.length} results - the full match set is larger.
                 </p>
               )}
             </>

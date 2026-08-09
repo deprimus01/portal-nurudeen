@@ -59,7 +59,7 @@ export default function GuardianAskPage() {
           </h1>
           <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: 0 }}>
             Ask about your child&apos;s attendance, results, or fees. Answers are based only on
-            their actual data — for anything else, contact the school office.
+            their actual data - for anything else, contact the school office.
           </p>
         </div>
         {children.length > 1 && (

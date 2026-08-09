@@ -8,7 +8,7 @@ import Dexie, { type Table } from 'dexie';
 //
 // This is deliberately NOT a full offline-first rewrite (PRD §2.5 puts
 // data correctness ahead of aesthetics, and results/fees are the kind of
-// data that must never be silently wrong) — it's a pragmatic cache-aside
+// data that must never be silently wrong) - it's a pragmatic cache-aside
 // layer: always try the network first, fall back to cache only on a
 // genuine network failure, and always label cached data as such in the
 // UI so nobody mistakes a stale attendance record for a live one.
@@ -43,7 +43,7 @@ class OfflineDB extends Dexie {
   }
 }
 
-// IndexedDB doesn't exist during SSR/build — guard construction so this
+// IndexedDB doesn't exist during SSR/build - guard construction so this
 // module can be safely imported from anywhere, including server code.
 export const db = typeof window !== 'undefined' ? new OfflineDB() : (null as unknown as OfflineDB);
 
@@ -61,7 +61,7 @@ export async function setCachedResponse(key: string, data: unknown): Promise<voi
   try {
     await db.cachedResponses.put({ key, data, cachedAt: Date.now() });
   } catch {
-    // Cache writes are best-effort — storage full/private-mode failures
+    // Cache writes are best-effort - storage full/private-mode failures
     // should never break the actual request that triggered them.
   }
 }

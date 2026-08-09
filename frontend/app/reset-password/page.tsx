@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
           <span>Security check</span>
         </div>
         <h2 style={{ fontSize: 22, marginBottom: 6 }}>Set a new password</h2>
-        <p className="login-sub">This is your first login — please set a permanent password before continuing.</p>
+        <p className="login-sub">This is your first login - please set a permanent password before continuing.</p>
 
         <form onSubmit={handleSubmit}>
           <div className="field">

@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Nuruddeen Schools Gusau — Portal',
+    name: 'Nuruddeen Schools Gusau - Portal',
     short_name: 'Nuruddeen Portal',
     description: 'Student records, attendance, results, and fees for Nuruddeen Schools Gusau.',
     start_url: '/',

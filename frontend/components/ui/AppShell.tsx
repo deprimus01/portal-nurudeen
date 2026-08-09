@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Bell,
   ChevronDown,
   LogOut,
   LucideIcon,
@@ -39,7 +38,7 @@ interface AppShellProps {
   userEmail?: string;
   onLogout: () => void;
   children: React.ReactNode;
-  /** hrefs shown in the mobile bottom nav (max 4) — defaults to first 4 items across all groups */
+  /** hrefs shown in the mobile bottom nav (max 4) - defaults to first 4 items across all groups */
   mobilePrimaryHrefs?: string[];
 }
 
@@ -97,7 +96,7 @@ export function AppShell({
     <>
       <div className="shell-sidebar-head">
         <div className="shell-brand">
-          <div className="shell-brand-mark">NS</div>
+          <img src="/images/logo.png" alt="Nuruddeen Schools" className="shell-brand-mark" />
           {!collapsed && (
             <div className="shell-brand-text">
               <div className="name">Nuruddeen Schools</div>
@@ -205,9 +204,6 @@ export function AppShell({
             <div className="shell-date">{dateStr}</div>
             <LanguageSwitcher compact />
             <ThemeToggle compact />
-            <button className="shell-icon-btn" aria-label={t('common.notifications')}>
-              <Bell size={16} />
-            </button>
             <div className="shell-profile-wrap">
               <button
                 type="button"

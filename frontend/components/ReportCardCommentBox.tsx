@@ -68,7 +68,7 @@ export function ReportCardCommentBox({
         </button>
       </div>
       <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginTop: 0 }}>
-        AI drafts are a starting point only — read it over and edit before saving. Nothing is
+        AI drafts are a starting point only - read it over and edit before saving. Nothing is
         visible to the parent/student until you save.
       </p>
       <textarea

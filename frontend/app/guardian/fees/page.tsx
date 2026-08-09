@@ -82,7 +82,7 @@ export default function GuardianFeesPage() {
                 return (
                   <tr key={i.id}>
                     <td style={{ fontWeight: 600 }}>{i.student?.firstName} {i.student?.lastName}</td>
-                    <td>{i.term?.session?.name} — {i.term?.name}</td>
+                    <td>{i.term?.session?.name} - {i.term?.name}</td>
                     <td className="mono">{naira(i.amount)}</td>
                     <td className="mono">{naira(paid)}</td>
                     <td className="mono" style={{ color: 'var(--muted)' }}>{new Date(i.dueDate).toLocaleDateString()}</td>
@@ -100,7 +100,7 @@ export default function GuardianFeesPage() {
       </div>
 
       <p style={{ color: 'var(--muted)', fontSize: '0.82rem', marginTop: '1rem' }}>
-        Online payment isn&apos;t available yet — contact the school office to pay by cash or bank
+        Online payment isn&apos;t available yet - contact the school office to pay by cash or bank
         transfer, and they&apos;ll record it against your invoice.
       </p>
     </div>

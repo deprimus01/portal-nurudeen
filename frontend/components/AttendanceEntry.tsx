@@ -123,7 +123,7 @@ export function AttendanceEntry({
       await api.post('/api/attendance', payload);
       setSavedMessage('Attendance saved.');
     } catch (err) {
-      // A network failure (device genuinely offline) — queue it instead
+      // A network failure (device genuinely offline) - queue it instead
       // of losing a completed roster the teacher just filled in by hand.
       // A real API error (validation, permission, etc.) is shown as an
       // error instead, since queuing something that will never succeed
@@ -131,7 +131,7 @@ export function AttendanceEntry({
       if (err instanceof TypeError) {
         await queuePendingAttendance(payload);
         await refreshPendingCount();
-        setSavedMessage('No connection — saved on this device. Will sync automatically once you\u2019re back online.');
+        setSavedMessage('No connection - saved on this device. Will sync automatically once you\u2019re back online.');
       } else {
         setError(err instanceof ApiError ? err.message : 'Failed to save attendance.');
       }
@@ -172,7 +172,7 @@ export function AttendanceEntry({
       {error && <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>}
       {fromCache && (
         <p style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--warn, #C9971C)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-          <CloudOff size={14} /> Offline — showing the last roster saved on this device.
+          <CloudOff size={14} /> Offline - showing the last roster saved on this device.
         </p>
       )}
       {pendingCount > 0 && (

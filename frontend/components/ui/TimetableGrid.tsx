@@ -32,7 +32,7 @@ interface TimetableGridProps {
   slots: Map<string, TimetableSlot>;
   loading: boolean;
   emptyMessage: string;
-  /** secondary line inside a lesson block — e.g. teacher name or class name */
+  /** secondary line inside a lesson block - e.g. teacher name or class name */
   subLabel: (slot: TimetableSlot) => string | undefined | null;
   onCellClick?: (day: string, period: number) => void;
 }

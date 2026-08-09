@@ -40,7 +40,7 @@ export interface CacheAwareResult<T> {
 }
 
 // True only for an actual network failure (device is offline, DNS
-// failure, request aborted, etc.) — never for a real HTTP error response.
+// failure, request aborted, etc.) - never for a real HTTP error response.
 // fetch() rejects with a TypeError for network failures; a 4xx/5xx
 // response resolves normally and is handled separately as an ApiError.
 // Falling back to cache on a real 403/500 would silently hide an actual
@@ -68,7 +68,7 @@ async function requestWithCacheMeta<T>(path: string, options: RequestOptions = {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      // A 401 means the session is dead — clear it so the app doesn't keep
+      // A 401 means the session is dead - clear it so the app doesn't keep
       // sending a stale token and looping on auth errors.
       if (res.status === 401) {
         clearToken();
@@ -77,7 +77,7 @@ async function requestWithCacheMeta<T>(path: string, options: RequestOptions = {
     }
 
     if (cacheable) {
-      // Fire-and-forget — a slow/failed cache write should never delay
+      // Fire-and-forget - a slow/failed cache write should never delay
       // or break the response the caller is actually waiting on.
       setCachedResponse(path, data);
     }
@@ -102,7 +102,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 export const api = {
   get: <T>(path: string) => apiRequest<T>(path),
   // Same as `get`, but returns whether the data came from the offline
-  // cache (and when it was cached) so a view can show a "you're offline —
+  // cache (and when it was cached) so a view can show a "you're offline -
   // showing data from earlier" banner instead of presenting stale data
   // as if it were live.
   getWithCache: <T>(path: string) => requestWithCacheMeta<T>(path),

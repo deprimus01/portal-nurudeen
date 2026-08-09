@@ -59,7 +59,7 @@ export function ForceResetPasswordButton({ user, displayName }: ForceResetPasswo
           New password for {result.email}: <code>{result.tempPassword}</code>
         </p>
         <p style={{ fontSize: '0.72rem', color: 'var(--muted)', margin: '0.3rem 0 0.5rem' }}>
-          Also emailed. Won&apos;t be shown again — copy it now.
+          Also emailed. Won&apos;t be shown again - copy it now.
         </p>
         <button className="btn btn-outline" style={{ fontSize: '0.78rem', padding: '0.3rem 0.6rem' }} onClick={() => setResult(null)}>
           Dismiss

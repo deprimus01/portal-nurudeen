@@ -1,5 +1,5 @@
 /* =========================================================
-   Nuruddeen SMS — Design System
+   Nuruddeen SMS - Design System
    Tokens derived from brand (Deep Navy / Signal Blue) with
    Academic Gold as the achievement/highlight accent.
    ========================================================= */
@@ -248,8 +248,14 @@ a.card:hover, .card.hoverable:hover {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
   box-shadow: var(--shadow-sm);
+}
+
+.table-wrap table {
+  min-width: 560px;
 }
 
 table {
@@ -399,7 +405,7 @@ tbody tr:last-child td {
 }
 
 /* =========================================================
-   App Shell — floating sidebar, sticky topbar, mobile nav
+   App Shell - floating sidebar, sticky topbar, mobile nav
    ========================================================= */
 
 .shell-body {
@@ -417,12 +423,10 @@ tbody tr:last-child td {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Lexend', sans-serif;
-  font-weight: 800;
-  color: #241a06;
-  font-size: 15px;
   box-shadow: var(--shadow-gold);
   flex-shrink: 0;
+  padding: 4px;
+  object-fit: contain;
 }
 
 /* ---- sidebar ---- */
@@ -437,10 +441,10 @@ tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 32px);
+  height: calc(100dvh - 32px);
   position: sticky;
   top: 16px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   transition: width 0.28s var(--ease), background 0.3s var(--ease), border-color 0.3s var(--ease);
   z-index: 40;
 }
@@ -456,6 +460,7 @@ tbody tr:last-child td {
   gap: 8px;
   padding: 18px 16px 14px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .shell-brand {
@@ -505,6 +510,9 @@ tbody tr:last-child td {
 .shell-nav {
   padding: 10px 10px 4px;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .shell-nav-group {
@@ -565,6 +573,7 @@ tbody tr:last-child td {
 .shell-sidebar-foot {
   padding: 10px;
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 .shell-logout {
   border: none;
@@ -591,6 +600,7 @@ tbody tr:last-child td {
   left: 0;
   margin: 0;
   height: 100vh;
+  height: 100dvh;
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
   z-index: 95;
 }
@@ -602,20 +612,8 @@ tbody tr:last-child td {
   .shell-sidebar:not(.shell-sidebar-mobile) {
     display: none;
   }
-  .shell-sidebar-mobile .shell-mobile-close {
-    display: flex;
-    position: absolute;
-    top: 14px;
-    right: -14px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--shadow-md);
-    color: var(--muted);
+  .shell-sidebar-mobile .shell-collapse-btn {
+    display: none;
   }
 }
 @media (min-width: 1024px) {
@@ -894,12 +892,29 @@ tbody tr:last-child td {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
 }
+.login-mobile-header {
+  display: none;
+}
 @media (max-width: 900px) {
   .login-wrap {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
   .login-left {
-    display: none;
+    display: none !important;
+  }
+  .login-mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 20px 18px;
+    background: radial-gradient(120% 160% at 20% 0%, #16408f 0%, #0b2358 55%, #060f28 100%);
+  }
+  .login-mobile-header .login-brand-text {
+    color: #fff;
+  }
+  .login-card {
+    padding: 28px 22px !important;
   }
 }
 
@@ -1014,9 +1029,9 @@ tbody tr:last-child td {
 }
 
 .login-theme-toggle {
-  position: absolute;
-  top: 24px;
-  right: 24px;
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .login-card {
@@ -1072,6 +1087,23 @@ tbody tr:last-child td {
 }
 .input-eye-toggle:hover {
   color: var(--text);
+}
+
+@media (max-width: 480px) {
+  .login-card input {
+    font-size: 14.5px;
+    padding-left: 36px;
+    padding-right: 0.7rem;
+  }
+  .input-shell > svg {
+    left: 12px;
+  }
+  .input-shell input {
+    padding-left: 36px;
+  }
+  .input-eye-toggle {
+    right: 10px;
+  }
 }
 
 .login-row-between {
@@ -1133,7 +1165,7 @@ tbody tr:last-child td {
 }
 
 /* =========================================================
-   Dashboard primitives — stat cards, quick actions, panels
+   Dashboard primitives - stat cards, quick actions, panels
    ========================================================= */
 
 .page-title {
@@ -1380,7 +1412,7 @@ tbody tr:last-child td {
 }
 
 /* =========================================================
-   Messages — conversation list + chat thread
+   Messages - conversation list + chat thread
    ========================================================= */
 
 .msg-shell {
@@ -1563,7 +1595,7 @@ tbody tr:last-child td {
 }
 
 /* =========================================================
-   Timetable — colored subject blocks
+   Timetable - colored subject blocks
    ========================================================= */
 
 .tt-wrap {
@@ -1657,7 +1689,7 @@ tbody tr:last-child td {
 }
 
 /* =========================================================
-   Report card — printable preview
+   Report card - printable preview
    ========================================================= */
 
 .report-wrap {

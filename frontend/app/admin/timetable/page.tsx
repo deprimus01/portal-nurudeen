@@ -138,7 +138,7 @@ export default function AdminTimetablePage() {
             transition={{ duration: 0.28, ease: EASE }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <strong>{editingCell.day} — Period {editingCell.period}</strong>
+              <strong>{editingCell.day} - Period {editingCell.period}</strong>
               <button className="btn-ghost btn" style={{ padding: 4 }} onClick={() => setEditingCell(null)} aria-label="Close">
                 <X size={16} />
               </button>

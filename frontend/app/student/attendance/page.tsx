@@ -53,6 +53,7 @@ export default function StudentAttendancePage() {
         ) : records.length === 0 ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.noResults')}</p>
         ) : (
+          <div className="table-wrap">
           <table>
             <thead><tr><th>{t('fields.date')}</th><th>{t('fields.status')}</th></tr></thead>
             <tbody>
@@ -68,6 +69,7 @@ export default function StudentAttendancePage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

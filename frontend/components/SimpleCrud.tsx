@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Inbox, Plus, Search, X } from 'lucide-react';
+import { Inbox, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { EmptyState } from './ui/EmptyState';
 
@@ -38,6 +38,8 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
   async function load() {
@@ -62,14 +64,51 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
     setError(null);
     setSubmitting(true);
     try {
-      await api.post(endpoint, form);
-      setForm(emptyDefaults);
-      setShowForm(false);
+      if (editingId) {
+        await api.patch(`${endpoint}/${editingId}`, form);
+      } else {
+        await api.post(endpoint, form);
+      }
+      closeForm();
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function closeForm() {
+    setForm(emptyDefaults);
+    setEditingId(null);
+    setShowForm(false);
+    setError(null);
+  }
+
+  function startEdit(item: any) {
+    const next: Record<string, unknown> = {};
+    fields.forEach((f) => {
+      next[f.name] = item[f.name] ?? '';
+    });
+    setForm(next);
+    setEditingId(item.id);
+    setError(null);
+    setShowForm(true);
+  }
+
+  async function handleDelete(item: any) {
+    if (!window.confirm(`Delete "${item[columns[0]?.key] ?? 'this item'}"? This can't be undone.`)) {
+      return;
+    }
+    setDeletingId(item.id);
+    setError(null);
+    try {
+      await api.delete(`${endpoint}/${item.id}`);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to delete.');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -91,7 +130,7 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
           <h1 className="page-title" style={{ marginBottom: 4 }}>{title}</h1>
           {description && <p className="page-sub" style={{ margin: 0 }}>{description}</p>}
         </div>
-        <button className="btn" onClick={() => setShowForm((v) => !v)}>
+        <button className="btn" onClick={() => (showForm ? closeForm() : setShowForm(true))}>
           {showForm ? <X size={15} /> : <Plus size={15} />}
           {showForm ? 'Cancel' : `Add ${title.replace(/s$/, '')}`}
         </button>
@@ -108,6 +147,11 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
             transition={{ duration: 0.3, ease: EASE }}
           >
+            {editingId && (
+              <p style={{ fontSize: '0.8rem', color: 'var(--muted)', margin: '0 0 0.9rem' }}>
+                Editing "{title.replace(/s$/, '')}"
+              </p>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.9rem' }}>
               {fields.map((f) => (
                 <div className="field" key={f.name} style={{ marginBottom: 0 }}>
@@ -138,7 +182,7 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
             </div>
             {error && <p className="error-text">{error}</p>}
             <button className="btn" type="submit" disabled={submitting} style={{ marginTop: '1.1rem' }}>
-              {submitting ? <span className="login-spinner" aria-hidden="true" /> : 'Save'}
+              {submitting ? <span className="login-spinner" aria-hidden="true" /> : editingId ? 'Save changes' : 'Save'}
             </button>
           </motion.form>
         )}
@@ -182,6 +226,7 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
             <thead>
               <tr>
                 {columns.map((c) => <th key={c.key}>{c.label}</th>)}
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -195,6 +240,34 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
                   {columns.map((c) => (
                     <td key={c.key}>{c.render ? c.render(item) : item[c.key]}</td>
                   ))}
+                  <td>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        className="shell-icon-btn"
+                        onClick={() => startEdit(item)}
+                        aria-label={`Edit ${item[columns[0]?.key] ?? 'item'}`}
+                        title="Edit"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="shell-icon-btn"
+                        onClick={() => handleDelete(item)}
+                        disabled={deletingId === item.id}
+                        aria-label={`Delete ${item[columns[0]?.key] ?? 'item'}`}
+                        title="Delete"
+                        style={{ color: 'var(--danger)' }}
+                      >
+                        {deletingId === item.id ? (
+                          <span className="login-spinner" aria-hidden="true" style={{ width: 14, height: 14 }} />
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                      </button>
+                    </div>
+                  </td>
                 </motion.tr>
               ))}
             </tbody>

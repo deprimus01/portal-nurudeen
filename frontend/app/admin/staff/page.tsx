@@ -81,9 +81,9 @@ export default function StaffPage() {
 
       {lastCredential && (
         <div className="card" style={{ marginBottom: '1.5rem', borderColor: 'var(--success)' }}>
-          <strong>Staff account created — credentials emailed automatically:</strong>
+          <strong>Staff account created - credentials emailed automatically:</strong>
           <p style={{ fontSize: '0.9rem' }}>
-            {lastCredential.email} — temporary password: <code>{lastCredential.tempPassword}</code>
+            {lastCredential.email} - temporary password: <code>{lastCredential.tempPassword}</code>
           </p>
           <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
             Shown here too in case the email doesn&apos;t land. Won&apos;t be shown again.
@@ -112,7 +112,7 @@ export default function StaffPage() {
               <input id="phone" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label htmlFor="email">Email (required — used for portal login)</label>
+              <label htmlFor="email">Email (required - used for portal login)</label>
               <input id="email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
@@ -160,6 +160,7 @@ export default function StaffPage() {
         ) : staff.length === 0 ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.noResults')}</p>
         ) : (
+          <div className="table-wrap">
           <table>
             <thead><tr><th>{t('fields.employeeId')}</th><th>{t('fields.name')}</th><th>{t('fields.role')}</th><th>{t('nav.subjects')}</th><th>{t('nav.classes')}</th><th>Portal account</th></tr></thead>
             <tbody>
@@ -177,6 +178,7 @@ export default function StaffPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

@@ -80,7 +80,7 @@ export default function ExamsPage() {
               <label htmlFor="examTerm">Term</label>
               <select id="examTerm" required value={form.termId} onChange={(e) => setForm({ ...form, termId: e.target.value })}>
                 <option value="" disabled>Select…</option>
-                {terms.map((t: any) => <option key={t.id} value={t.id}>{t.session?.name} — {t.name}</option>)}
+                {terms.map((t: any) => <option key={t.id} value={t.id}>{t.session?.name} - {t.name}</option>)}
               </select>
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
@@ -111,6 +111,7 @@ export default function ExamsPage() {
         ) : exams.length === 0 ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.noResults')}</p>
         ) : (
+          <div className="table-wrap">
           <table>
             <thead><tr><th>Exam</th><th>Class</th><th>Term</th><th>Grading scheme</th><th></th></tr></thead>
             <tbody>
@@ -118,13 +119,14 @@ export default function ExamsPage() {
                 <tr key={e.id}>
                   <td>{e.name}</td>
                   <td>{e.class?.name}</td>
-                  <td>{e.term?.session?.name} — {e.term?.name}</td>
+                  <td>{e.term?.session?.name} - {e.term?.name}</td>
                   <td>{e.gradingScheme?.name}</td>
                   <td><Link href={`/admin/report-cards?examId=${e.id}`}>Report cards</Link></td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

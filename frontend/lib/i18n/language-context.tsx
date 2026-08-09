@@ -9,7 +9,7 @@ interface LanguageContextValue {
   /**
    * Looks up a dot-path key (e.g. "nav.dashboard") in the current locale's
    * dictionary, falling back to English if the current locale is missing
-   * that key, and to the raw key itself if even English is missing it —
+   * that key, and to the raw key itself if even English is missing it -
    * so an unreviewed or incomplete translation never renders as a blank
    * string. {{var}} tokens in the result are replaced from `vars`.
    */

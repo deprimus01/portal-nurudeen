@@ -64,7 +64,7 @@ export default function EnrollmentsPage() {
           <h1 style={{ fontSize: '1.4rem', marginBottom: '0.2rem' }}>{t('pages.enrollments.title')}</h1>
           <p style={{ color: 'var(--muted)', fontSize: '0.88rem', margin: 0 }}>
             Links a student to a class for a specific term. This is also how yearly promotion
-            works — enroll a student in a new term/class, and their &ldquo;current class&rdquo;
+            works - enroll a student in a new term/class, and their &ldquo;current class&rdquo;
             moves with it.
           </p>
         </div>
@@ -97,7 +97,7 @@ export default function EnrollmentsPage() {
               <select id="termId" required value={form.termId} onChange={(e) => setForm({ ...form, termId: e.target.value })}>
                 <option value="" disabled>Select…</option>
                 {terms.map((t: any) => (
-                  <option key={t.id} value={t.id}>{t.session?.name} — {t.name}</option>
+                  <option key={t.id} value={t.id}>{t.session?.name} - {t.name}</option>
                 ))}
               </select>
             </div>
@@ -117,7 +117,7 @@ export default function EnrollmentsPage() {
         >
           <option value="">All terms</option>
           {terms.map((t: any) => (
-            <option key={t.id} value={t.id}>{t.session?.name} — {t.name}</option>
+            <option key={t.id} value={t.id}>{t.session?.name} - {t.name}</option>
           ))}
         </select>
 
@@ -126,6 +126,7 @@ export default function EnrollmentsPage() {
         ) : enrollments.length === 0 ? (
           <p style={{ color: 'var(--muted)' }}>No enrollments yet.</p>
         ) : (
+          <div className="table-wrap">
           <table>
             <thead>
               <tr><th>Student</th><th>Class</th><th>Term</th><th>Status</th></tr>
@@ -135,7 +136,7 @@ export default function EnrollmentsPage() {
                 <tr key={e.id}>
                   <td>{e.student.firstName} {e.student.lastName}</td>
                   <td>{e.class.name}</td>
-                  <td>{e.term.session?.name} — {e.term.name}</td>
+                  <td>{e.term.session?.name} - {e.term.name}</td>
                   <td>
                     <span className={`badge ${e.status === 'ACTIVE' ? 'badge-success' : ''}`}>{e.status}</span>
                   </td>
@@ -143,6 +144,7 @@ export default function EnrollmentsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

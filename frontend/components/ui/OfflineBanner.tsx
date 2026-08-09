@@ -28,7 +28,7 @@ export function OfflineBanner({ cachedAt }: { cachedAt?: number }) {
     >
       <WifiOff size={15} style={{ flexShrink: 0, color: 'var(--warn, #C9971C)' }} />
       <span style={{ fontSize: '0.85rem' }}>
-        You&apos;re offline — showing data saved {cachedAt ? timeAgo(cachedAt) : 'earlier'}.
+        You&apos;re offline - showing data saved {cachedAt ? timeAgo(cachedAt) : 'earlier'}.
       </span>
     </div>
   );

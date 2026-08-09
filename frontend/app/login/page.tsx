@@ -46,7 +46,7 @@ export default function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: EASE }}
         >
-          <div className="shell-brand-mark">NS</div>
+          <img src="/images/logo.png" alt="Nuruddeen Schools" className="shell-brand-mark" />
           <div className="login-brand-text">
             Nuruddeen Schools
             <span>Gusau, Zamfara State</span>
@@ -82,12 +82,15 @@ export default function LoginPage() {
         </motion.div>
       </div>
 
-      <div className="login-right">
-        <div className="login-theme-toggle" style={{ display: 'flex', gap: 8 }}>
-          <LanguageSwitcher />
-          <ThemeToggle />
+      <div className="login-mobile-header">
+        <img src="/images/logo.png" alt="Nuruddeen Schools" className="shell-brand-mark" />
+        <div className="login-brand-text">
+          Nuruddeen Schools
+          <span>Gusau, Zamfara State</span>
         </div>
+      </div>
 
+      <div className="login-right">
         <motion.div
           className="card login-card"
           initial={{ opacity: 0, y: 18, scale: 0.98 }}
@@ -95,10 +98,17 @@ export default function LoginPage() {
           transition={{ duration: 0.5, ease: EASE }}
         >
           <div className="login-top-logo">
-            <div className="shell-brand-mark" style={{ width: 34, height: 34, fontSize: 13 }}>
-              NS
-            </div>
+            <img
+              src="/images/logo.png"
+              alt="Nuruddeen Schools"
+              className="shell-brand-mark"
+              style={{ width: 34, height: 34, objectFit: 'contain' }}
+            />
             <span>Nuruddeen Schools</span>
+            <div className="login-theme-toggle">
+              <LanguageSwitcher compact />
+              <ThemeToggle compact />
+            </div>
           </div>
           <h2>{t('login.welcomeBack')}</h2>
           <p className="login-sub">{t('login.signInSubtitle')}</p>

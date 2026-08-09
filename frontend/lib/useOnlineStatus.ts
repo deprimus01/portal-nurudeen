@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 // navigator.onLine is a reasonable first read but is known to give false
 // positives (reports "online" when connected to a network with no real
-// internet) — the online/offline events are the more reliable signal for
+// internet) - the online/offline events are the more reliable signal for
 // state *changes*, so this combines both: trust the events, use
 // navigator.onLine only for the initial value before any event has fired.
 export function useOnlineStatus(): boolean {

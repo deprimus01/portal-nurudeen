@@ -44,7 +44,7 @@ export default function AdminFeesPage() {
     invoiceId: '', amount: '', method: 'CASH', reference: '',
   });
   const [paying, setPaying] = useState(false);
-  // Was 'PARTIAL' | 'UNPAID' — those never matched the real InvoiceStatus
+  // Was 'PARTIAL' | 'UNPAID' - those never matched the real InvoiceStatus
   // enum ('PARTIALLY_PAID' | 'PENDING'), so those two filters silently
   // returned zero results. Filter state now uses the actual enum values;
   // FILTER_LABELS below keeps the friendlier button text.
@@ -186,7 +186,7 @@ export default function AdminFeesPage() {
               </select>
               <select required value={structureForm.termId} onChange={(e) => setStructureForm({ ...structureForm, termId: e.target.value })}>
                 <option value="" disabled>Term…</option>
-                {terms.map((t: any) => <option key={t.id} value={t.id}>{t.session?.name} — {t.name}</option>)}
+                {terms.map((t: any) => <option key={t.id} value={t.id}>{t.session?.name} - {t.name}</option>)}
               </select>
               <input placeholder="e.g. Tuition" required value={structureForm.description} onChange={(e) => setStructureForm({ ...structureForm, description: e.target.value })} />
               <input type="number" min="1" placeholder="Amount (\u20a6)" required value={structureForm.amount} onChange={(e) => setStructureForm({ ...structureForm, amount: e.target.value })} />
@@ -199,19 +199,21 @@ export default function AdminFeesPage() {
         {structures.length === 0 ? (
           <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: 0 }}>No fee structure items yet.</p>
         ) : (
+          <div className="table-wrap">
           <table>
             <thead><tr><th>Class</th><th>Term</th><th>Item</th><th>Amount</th></tr></thead>
             <tbody>
               {structures.map((s: any) => (
                 <tr key={s.id}>
                   <td>{s.class?.name}</td>
-                  <td>{s.term?.session?.name} — {s.term?.name}</td>
+                  <td>{s.term?.session?.name} - {s.term?.name}</td>
                   <td>{s.description}</td>
                   <td className="mono">{naira(s.amount)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -220,7 +222,7 @@ export default function AdminFeesPage() {
           <h2 style={{ fontSize: '1rem', marginTop: 0 }}>Generate invoices</h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
             Creates one invoice per actively-enrolled student, summing that class/term&apos;s fee
-            structure. Safe to re-run — already-invoiced students are skipped.
+            structure. Safe to re-run - already-invoiced students are skipped.
           </p>
           <form onSubmit={handleGenerate} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.6rem' }}>
             <select required value={genForm.classId} onChange={(e) => setGenForm({ ...genForm, classId: e.target.value })}>
@@ -229,7 +231,7 @@ export default function AdminFeesPage() {
             </select>
             <select required value={genForm.termId} onChange={(e) => setGenForm({ ...genForm, termId: e.target.value })}>
               <option value="" disabled>Term…</option>
-              {terms.map((t: any) => <option key={t.id} value={t.id}>{t.session?.name} — {t.name}</option>)}
+              {terms.map((t: any) => <option key={t.id} value={t.id}>{t.session?.name} - {t.name}</option>)}
             </select>
             <input type="date" required value={genForm.dueDate} onChange={(e) => setGenForm({ ...genForm, dueDate: e.target.value })} />
             <button className="btn" type="submit" disabled={generating}>
@@ -258,7 +260,7 @@ export default function AdminFeesPage() {
               <option value="" disabled>Invoice…</option>
               {invoices.filter((i: any) => i.status !== 'PAID').map((i: any) => (
                 <option key={i.id} value={i.id}>
-                  {i.student?.firstName} {i.student?.lastName} — {naira(i.amount)} ({i.status})
+                  {i.student?.firstName} {i.student?.lastName} - {naira(i.amount)} ({i.status})
                 </option>
               ))}
             </select>
@@ -313,7 +315,7 @@ export default function AdminFeesPage() {
                       </div>
                       {i.student?.firstName} {i.student?.lastName}
                     </td>
-                    <td>{i.term?.session?.name} — {i.term?.name}</td>
+                    <td>{i.term?.session?.name} - {i.term?.name}</td>
                     <td className="mono">{naira(i.amount)}</td>
                     <td className="mono">{naira(paid)}</td>
                     <td className="mono" style={{ color: 'var(--muted)' }}>{new Date(i.dueDate).toLocaleDateString()}</td>

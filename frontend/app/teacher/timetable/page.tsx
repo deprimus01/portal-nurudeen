@@ -34,7 +34,7 @@ export default function TeacherTimetablePage() {
       <TimetableGrid
         slots={slots}
         loading={loading}
-        emptyMessage="Nothing on your timetable yet — an admin sets this up under Timetable for each class you're assigned to."
+        emptyMessage="Nothing on your timetable yet - an admin sets this up under Timetable for each class you're assigned to."
         subLabel={(slot) => (slot as any).class?.name}
       />
     </div>

@@ -19,7 +19,7 @@ export default function TeacherAttendancePage() {
       {classOptions.length === 0 ? (
         <div className="card">
           <p style={{ color: 'var(--muted)' }}>
-            You haven&apos;t been assigned to any classes yet — ask an admin to assign you under Staff.
+            You haven&apos;t been assigned to any classes yet - ask an admin to assign you under Staff.
           </p>
         </div>
       ) : (

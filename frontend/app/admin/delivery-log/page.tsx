@@ -22,7 +22,7 @@ const FILTERS = [
   { value: 'SENT', label: 'Sent' },
 ];
 
-// Surfaces NotificationLog (see backend lib/notify.js) — every credential,
+// Surfaces NotificationLog (see backend lib/notify.js) - every credential,
 // announcement, and message notification is logged here for both channels
 // (email via Resend, SMS via Termii) whether it succeeded or not. A
 // failure here (e.g. Resend rejecting sends because EMAIL_FROM is still
@@ -63,7 +63,7 @@ export default function DeliveryLogPage() {
         <div>
           <h1 className="page-title" style={{ marginBottom: 4 }}>{t('pages.deliveryLog.title')}</h1>
           <p className="page-sub" style={{ margin: 0 }}>
-            Every outbound email and SMS — credentials, announcements, messages — and whether it actually sent.
+            Every outbound email and SMS - credentials, announcements, messages - and whether it actually sent.
           </p>
         </div>
         <button className="btn btn-outline" onClick={() => load()} disabled={loading}>
@@ -84,7 +84,7 @@ export default function DeliveryLogPage() {
                 deliver to your own Resend account email. Verify your school&apos;s domain in Resend
                 and set <code>EMAIL_FROM</code> to an address on it. If every recent SMS fails
                 instead, check that <code>TERMII_SENDER_ID</code> is an approved Sender ID on your
-                Termii account — unapproved IDs fail silently on some routes.
+                Termii account - unapproved IDs fail silently on some routes.
               </p>
             </div>
           </div>

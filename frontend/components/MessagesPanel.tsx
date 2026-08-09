@@ -37,7 +37,7 @@ export function MessagesPanel() {
   const [drafting, setDrafting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // PRD Phase 7 — "Teacher message-drafting assistant." Scoped to teachers
+  // PRD Phase 7 - "Teacher message-drafting assistant." Scoped to teachers
   // in the UI since that's the feature as spec'd; the backend also allows
   // Admin, but the entry point here stays teacher-only to match.
   const canDraftWithAi = user?.role === 'TEACHER';

@@ -62,7 +62,7 @@ export default function TeacherReportCardsPage() {
             <select id="trcExam" value={examId} onChange={(e) => { setExamId(e.target.value); setStudentId(''); }}>
               <option value="" disabled>Select…</option>
               {exams.map((e: any) => (
-                <option key={e.id} value={e.id}>{e.class?.name} — {e.name}</option>
+                <option key={e.id} value={e.id}>{e.class?.name} - {e.name}</option>
               ))}
             </select>
           </div>
