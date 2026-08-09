@@ -1,0 +1,588 @@
+// Nuruddeen Schools Gusau — School Management System (Portal)
+// Prisma schema — defines the full data model from the PRD now (Phase 0),
+// even though only a subset of tables get real API routes in this first
+// build pass (Phase 1: auth + core records). Designing the full relational
+// shape upfront avoids painful migrations later, per PRD §2.3/§3.1.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // DATABASE_URL: Neon's pooled connection string (PgBouncer, transaction
+  // mode) — what the running app uses for normal queries. Cheap to open
+  // many short-lived connections from, which suits a serverless-style host
+  // like Render spinning up request handlers.
+  url       = env("DATABASE_URL")
+  // DIRECT_URL: Neon's *unpooled* connection string. Prisma Migrate takes
+  // an advisory lock and needs a session-level connection to hold it —
+  // that breaks under PgBouncer's transaction pooling, so migrations must
+  // run through the direct connection instead. Only used at migrate time,
+  // never by the running app.
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Auth & roles
+// ─────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  GUARDIAN
+  STUDENT
+}
+
+// Every login goes through this table. It links out to exactly one of
+// Staff / Guardian / Student depending on role — never more than one,
+// enforced at the application layer (Prisma can't express XOR constraints).
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  role              UserRole
+  mustResetPassword Boolean   @default(true)
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  staff     Staff?    @relation(fields: [staffId], references: [id])
+  staffId   String?   @unique
+  guardian  Guardian? @relation(fields: [guardianId], references: [id])
+  guardianId String?  @unique
+  student   Student?  @relation(fields: [studentId], references: [id])
+  studentId String?   @unique
+
+  auditLogs         AuditLog[]
+  sentMessages      Message[]      @relation("MessageSender")
+  receivedMessages  Message[]      @relation("MessageRecipient")
+  authoredAnnouncements Announcement[]
+
+  @@index([role])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Academic calendar
+// ─────────────────────────────────────────────────────────────────────────
+
+model AcademicSession {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g. "2025/2026"
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  terms Term[]
+}
+
+model Term {
+  id                String          @id @default(cuid())
+  name              String          // e.g. "First Term"
+  session           AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId         String
+  startDate         DateTime
+  endDate           DateTime
+  isCurrent         Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+
+  enrollments      Enrollment[]
+  exams            Exam[]
+  feeStructures    FeeStructure[]
+  invoices         Invoice[]
+
+  @@unique([sessionId, name])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Classes & subjects
+// ─────────────────────────────────────────────────────────────────────────
+
+enum SchoolLevel {
+  NURSERY
+  PRIMARY
+  JUNIOR_SECONDARY
+  SENIOR_SECONDARY
+}
+
+model Class {
+  id        String      @id @default(cuid())
+  name      String      @unique // e.g. "JSS1", "Nursery 1"
+  level     SchoolLevel
+  sortOrder Int         // controls display order Nursery 1 -> SSS3
+  createdAt DateTime    @default(now())
+
+  sections       Section[]
+  classSubjects  ClassSubject[]
+  students       Student[]        // current class
+  enrollments    Enrollment[]
+  staffClasses   StaffClass[]
+  attendance     AttendanceRecord[]
+  timetableSlots TimetableSlot[]
+  feeStructures  FeeStructure[]
+  exams          Exam[]
+  announcements  Announcement[]
+}
+
+model Section {
+  id      String @id @default(cuid())
+  name    String // e.g. "A", "B"
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId String
+
+  enrollments Enrollment[]
+
+  @@unique([classId, name])
+}
+
+model Subject {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String?  @unique
+  createdAt DateTime @default(now())
+
+  classSubjects  ClassSubject[]
+  staffSubjects  StaffSubject[]
+  results        Result[]
+  timetableSlots TimetableSlot[]
+}
+
+model ClassSubject {
+  id        String  @id @default(cuid())
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId   String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId String
+
+  @@unique([classId, subjectId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Students & guardians
+// ─────────────────────────────────────────────────────────────────────────
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum StudentStatus {
+  ACTIVE
+  GRADUATED
+  WITHDRAWN
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  admissionNumber String        @unique
+  firstName       String
+  lastName        String
+  otherNames      String?
+  dateOfBirth     DateTime
+  gender          Gender
+  photoUrl        String?
+  status          StudentStatus @default(ACTIVE)
+  currentClass    Class?        @relation(fields: [currentClassId], references: [id])
+  currentClassId  String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user              User?
+  studentGuardians  StudentGuardian[]
+  enrollments       Enrollment[]
+  attendanceRecords AttendanceRecord[]
+  results           Result[]
+  reportCardComments ReportCardComment[]
+  invoices          Invoice[]
+
+  @@index([lastName, firstName])
+}
+
+model Guardian {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  phone     String   @unique
+  email     String?  @unique
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user             User?
+  studentGuardians StudentGuardian[]
+
+  @@index([lastName, firstName])
+}
+
+enum GuardianRelationship {
+  FATHER
+  MOTHER
+  GUARDIAN
+  OTHER
+}
+
+// Many-to-many: a guardian can have multiple children; a student can have
+// multiple guardians (e.g. father + mother both get portal access).
+model StudentGuardian {
+  id           String               @id @default(cuid())
+  student      Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId    String
+  guardian     Guardian             @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  guardianId   String
+  relationship GuardianRelationship
+  isPrimary    Boolean              @default(false)
+
+  @@unique([studentId, guardianId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Staff
+// ─────────────────────────────────────────────────────────────────────────
+
+enum StaffRole {
+  TEACHER
+  ADMIN
+  TEACHER_ADMIN
+}
+
+model Staff {
+  id         String    @id @default(cuid())
+  employeeId String    @unique
+  firstName  String
+  lastName   String
+  phone      String    @unique
+  email      String?   @unique
+  role       StaffRole
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user               User?
+  staffSubjects      StaffSubject[]
+  staffClasses       StaffClass[]
+  attendanceMarked   AttendanceRecord[] @relation("MarkedBy")
+  resultsEntered     Result[]           @relation("EnteredBy")
+  reportCardComments ReportCardComment[]
+  authoredAnnouncements Announcement[]  @relation("StaffAnnouncements")
+  timetableSlots     TimetableSlot[]
+
+  @@index([lastName, firstName])
+}
+
+model StaffSubject {
+  id        String  @id @default(cuid())
+  staff     Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId   String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId String
+
+  @@unique([staffId, subjectId])
+}
+
+// Which class(es) a teacher is assigned to (class teacher / subject teacher)
+model StaffClass {
+  id      String @id @default(cuid())
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId String
+
+  @@unique([staffId, classId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Enrollment (student × class × term — tracks yearly promotion)
+// ─────────────────────────────────────────────────────────────────────────
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  TRANSFERRED
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  class     Class            @relation(fields: [classId], references: [id])
+  classId   String
+  section   Section?         @relation(fields: [sectionId], references: [id])
+  sectionId String?
+  term      Term             @relation(fields: [termId], references: [id])
+  termId    String
+  status    EnrollmentStatus @default(ACTIVE)
+  createdAt DateTime         @default(now())
+
+  @@unique([studentId, termId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Attendance (Phase 2 — schema defined now, routes come later)
+// ─────────────────────────────────────────────────────────────────────────
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+model AttendanceRecord {
+  id        String           @id @default(cuid())
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  class     Class            @relation(fields: [classId], references: [id])
+  classId   String
+  date      DateTime         @db.Date
+  status    AttendanceStatus
+  markedBy  Staff            @relation("MarkedBy", fields: [markedById], references: [id])
+  markedById String
+  createdAt DateTime         @default(now())
+
+  @@unique([studentId, date])
+  @@index([classId, date])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Timetable (Phase 2 — "Timetable builder (admin) and read-only views for
+// teachers/parents/students" per PRD §3.3)
+// ─────────────────────────────────────────────────────────────────────────
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+// One row per class/day/period. subject+staff are optional so admin can
+// block out a period (e.g. "Assembly", "Break") without assigning either —
+// enforced/labeled at the application layer via a free-text label field.
+model TimetableSlot {
+  id        String    @id @default(cuid())
+  class     Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId   String
+  dayOfWeek DayOfWeek
+  period    Int       // 1st period, 2nd period, etc. — simpler than exact clock times.
+  label     String?   // e.g. "Assembly", "Break" — used when subject/staff are null
+  subject   Subject?  @relation(fields: [subjectId], references: [id])
+  subjectId String?
+  staff     Staff?    @relation(fields: [staffId], references: [id])
+  staffId   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([classId, dayOfWeek, period])
+  @@index([staffId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Grading, exams & results (Phase 3 — schema defined now, routes come later)
+// ─────────────────────────────────────────────────────────────────────────
+
+model GradingScheme {
+  id          String @id @default(cuid())
+  name        String @unique // e.g. "Standard Secondary", "Nursery Scheme"
+  description String?
+
+  bands GradingBand[]
+  exams Exam[]
+}
+
+model GradingBand {
+  id       String        @id @default(cuid())
+  scheme   GradingScheme @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  schemeId String
+  minScore Int
+  maxScore Int
+  grade    String        // e.g. "A1", "B2"
+  remark   String        // e.g. "Excellent"
+}
+
+model Exam {
+  id              String         @id @default(cuid())
+  name            String         // e.g. "First Term Examination"
+  term            Term           @relation(fields: [termId], references: [id])
+  termId          String
+  class           Class          @relation(fields: [classId], references: [id])
+  classId         String
+  gradingScheme   GradingScheme  @relation(fields: [gradingSchemeId], references: [id])
+  gradingSchemeId String
+  createdAt       DateTime       @default(now())
+
+  results Result[]
+  reportCardComments ReportCardComment[]
+
+  @@unique([termId, classId, name])
+}
+
+model Result {
+  id         String   @id @default(cuid())
+  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examId     String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+  subjectId  String
+  score      Int
+  enteredBy  Staff    @relation("EnteredBy", fields: [enteredById], references: [id])
+  enteredById String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([examId, studentId, subjectId])
+}
+
+// One overall remark per student per exam — AI-drafted (Phase 7), always
+// reviewed/edited by a teacher before saving here. This table only ever
+// holds the human-approved text; nothing an AI generates is stored or
+// shown to a parent/student without a save action from a teacher/admin.
+model ReportCardComment {
+  id           String   @id @default(cuid())
+  exam         Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examId       String
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId    String
+  comment      String
+  authoredBy   Staff    @relation(fields: [authoredById], references: [id])
+  authoredById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([examId, studentId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Fees & payments (Phase 4 — schema defined now, routes come later)
+// ─────────────────────────────────────────────────────────────────────────
+
+model FeeStructure {
+  id          String   @id @default(cuid())
+  class       Class    @relation(fields: [classId], references: [id])
+  classId     String
+  term        Term     @relation(fields: [termId], references: [id])
+  termId      String
+  description String   // e.g. "Tuition", "Feeding"
+  amount      Int      // stored in kobo to avoid float rounding issues
+  createdAt   DateTime @default(now())
+
+  @@unique([classId, termId, description])
+}
+
+enum InvoiceStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+model Invoice {
+  id        String        @id @default(cuid())
+  student   Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  term      Term          @relation(fields: [termId], references: [id])
+  termId    String
+  amount    Int           // kobo
+  dueDate   DateTime
+  status    InvoiceStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+
+  payments Payment[]
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  PAYSTACK
+  FLUTTERWAVE
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String
+  amount    Int           // kobo
+  method    PaymentMethod
+  reference String?       // provider transaction reference
+  paidAt    DateTime      @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Announcements & messaging (Phase 5 — schema defined now, routes come later)
+// ─────────────────────────────────────────────────────────────────────────
+
+enum AnnouncementAudience {
+  SCHOOL_WIDE
+  CLASS
+}
+
+model Announcement {
+  id            String               @id @default(cuid())
+  title         String
+  body          String
+  audience      AnnouncementAudience
+  class         Class?               @relation(fields: [classId], references: [id])
+  classId       String?
+  authorStaff   Staff?               @relation("StaffAnnouncements", fields: [authorStaffId], references: [id])
+  authorStaffId String?
+  authorUser    User?                @relation(fields: [authorUserId], references: [id])
+  authorUserId  String?
+  createdAt     DateTime             @default(now())
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  sender      User     @relation("MessageSender", fields: [senderId], references: [id])
+  senderId    String
+  recipient   User     @relation("MessageRecipient", fields: [recipientId], references: [id])
+  recipientId String
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([recipientId, readAt])
+}
+
+enum NotificationChannel {
+  SMS
+  EMAIL
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  PENDING
+}
+
+model NotificationLog {
+  id            String              @id @default(cuid())
+  recipientType String              // "guardian" | "staff" | "student"
+  recipientId   String
+  channel       NotificationChannel
+  message       String
+  status        NotificationStatus
+  errorDetail   String?
+  sentAt        DateTime            @default(now())
+
+  @@index([recipientType, recipientId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Audit log — PRD §2.4 security requirement
+// ─────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  action     String   // e.g. "student.create", "student.update"
+  entityType String   // e.g. "Student"
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+}
