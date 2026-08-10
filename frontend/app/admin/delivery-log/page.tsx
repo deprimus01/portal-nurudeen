@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw, Send } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 interface LogEntry {
   id: string;
@@ -47,7 +49,7 @@ export default function DeliveryLogPage() {
       setEntries(data.entries);
       setFailedCount(data.failedCount);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load delivery log.');
+      setError(getErrorMessage(err, 'Failed to load delivery log.'));
     } finally {
       setLoading(false);
     }
@@ -108,12 +110,15 @@ export default function DeliveryLogPage() {
       </div>
 
       <div className="table-wrap">
-        {error && <p className="error-text" style={{ padding: '1rem 1.5rem' }}>{error}</p>}
         {loading ? (
           <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[...Array(4)].map((_, i) => (
               <div key={i} className="skeleton" style={{ height: 18, width: `${90 - i * 8}%` }} />
             ))}
+          </div>
+        ) : entries.length === 0 && error ? (
+          <div style={{ padding: '1rem 0' }}>
+            <ErrorState description={error} onRetry={() => load()} />
           </div>
         ) : entries.length === 0 ? (
           <EmptyState

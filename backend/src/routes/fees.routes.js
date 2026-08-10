@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { logAction } from '../lib/auditLog.js';
 import { guardianStudentIds } from '../lib/guardianOwnership.js';
+import { notifyFeeActivity, notifyFeeUpdateForStudent } from '../lib/notifications.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import {
@@ -147,6 +148,13 @@ router.post(
       metadata: { classId, termId, count: toCreate.length, amount: totalAmount },
     });
 
+    const targetClass = await prisma.class.findUnique({ where: { id: classId }, select: { name: true } });
+    await notifyFeeActivity({
+      actorUserId: req.user.id,
+      title: 'Fee activity',
+      body: `${toCreate.length} invoice${toCreate.length === 1 ? '' : 's'} generated for ${targetClass?.name || 'a class'}.`,
+    });
+
     return res.status(201).json({ created: toCreate.length });
   }),
 );
@@ -186,6 +194,24 @@ router.post(
       entityId: invoiceId,
       metadata: { amount, method },
     });
+
+    const studentName = `${updated.student.firstName} ${updated.student.lastName}`;
+    const amountLabel = `\u20a6${Math.round(amount / 100).toLocaleString()}`;
+
+    await Promise.all([
+      notifyFeeActivity({
+        actorUserId: req.user.id,
+        title: 'Fee activity',
+        body: `Payment of ${amountLabel} recorded for ${studentName}.`,
+        invoiceId,
+      }),
+      notifyFeeUpdateForStudent({
+        studentId: updated.studentId,
+        studentName,
+        body: `A payment of ${amountLabel} was recorded. Invoice status: ${updated.status.replace('_', ' ').toLowerCase()}.`,
+        invoiceId,
+      }),
+    ]);
 
     return res.status(201).json(updated);
   }),

@@ -3,12 +3,14 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Award } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import { ReportCardCommentBox } from '../../../components/ReportCardCommentBox';
 import { ReportCardView } from '../../../components/ui/ReportCardView';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import type { Exam, Student, ReportCard } from '../../../lib/types';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 function ReportCardsInner() {
   const { t } = useLanguage();
@@ -16,7 +18,7 @@ function ReportCardsInner() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [examId, setExamId] = useState(searchParams.get('examId') || '');
-  const [studentId, setStudentId] = useState('');
+  const [studentId, setStudentId] = useState(searchParams.get('studentId') || '');
   const [report, setReport] = useState<ReportCard | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ function ReportCardsInner() {
       const data = await api.get<ReportCard>(`/api/results/report-card?examId=${examId}&studentId=${studentId}`);
       setReport(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load report card.');
+      setError(getErrorMessage(err, 'Failed to load report card.'));
       setReport(null);
     } finally {
       setLoading(false);
@@ -77,12 +79,14 @@ function ReportCardsInner() {
         </div>
       </div>
 
-      {error && <p className="error-text no-print">{error}</p>}
-
       {loading ? (
         <div className="card no-print"><div className="skeleton" style={{ height: 200 }} /></div>
       ) : report ? (
         <ReportCardView report={report} />
+      ) : error ? (
+        <div className="card no-print">
+          <ErrorState description={error} onRetry={loadReport} />
+        </div>
       ) : (
         <div className="card no-print">
           <EmptyState icon={Award} title="No report card selected" description="Select an exam and student to view their report card." />

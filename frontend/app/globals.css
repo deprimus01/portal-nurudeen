@@ -898,6 +898,156 @@ tbody tr:last-child td {
   background: transparent;
 }
 
+/* Notification bell + dropdown panel */
+.shell-notif-wrap {
+  position: relative;
+}
+.shell-notif-btn {
+  position: relative;
+}
+.shell-notif-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface-2);
+  line-height: 1;
+}
+.shell-notif-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 60;
+  overflow: hidden;
+}
+.shell-notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.shell-notif-head h4 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.shell-notif-markall {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.shell-notif-markall:hover {
+  background: var(--surface-2);
+}
+.shell-notif-list {
+  max-height: 380px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.shell-notif-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+  transition: background 0.15s var(--ease);
+}
+.shell-notif-item:last-child {
+  border-bottom: none;
+}
+.shell-notif-item:hover {
+  background: var(--surface-2);
+}
+.shell-notif-item.unread {
+  background: rgba(0, 85, 251, 0.04);
+}
+.shell-notif-item.shell-notif-reminder {
+  cursor: default;
+  background: rgba(217, 119, 6, 0.05);
+}
+.shell-notif-item .ti-title {
+  white-space: normal;
+  line-height: 1.3;
+}
+.shell-notif-item .ti-sub {
+  white-space: normal;
+  line-height: 1.35;
+  margin-top: 1px;
+}
+.shell-notif-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.shell-notif-unread-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--blue);
+}
+.shell-notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 32px 20px;
+  text-align: center;
+}
+.shell-notif-empty p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.shell-notif-empty span {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+@media (max-width: 480px) {
+  .shell-notif-panel {
+    position: fixed;
+    top: 58px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
+
 /* ---- mobile bottom nav ---- */
 .shell-bottom-nav {
   display: none;
@@ -1890,6 +2040,122 @@ tbody tr:last-child td {
   }
 }
 
+/* ---- live entity search results within the command center ---- */
+.cmdk-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--blue);
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+.cmdk-section {
+  margin-bottom: 2px;
+}
+.cmdk-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+.cmdk-clear {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue);
+  text-transform: none;
+  letter-spacing: normal;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.cmdk-clear:hover {
+  text-decoration: underline;
+}
+.cmdk-recent-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 12px 10px;
+}
+.cmdk-recent-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+.cmdk-recent-chip:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.cmdk-result-item {
+  align-items: center;
+}
+.cmdk-result-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cmdk-result-top {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.cmdk-result-type {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gold);
+}
+.cmdk-result-item .cmdk-item-label {
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmdk-result-subtitle {
+  font-size: 11.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmdk-result-meta {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-family: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+  color: var(--muted-2);
+}
+.cmdk-skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 12px;
+}
+.cmdk-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
 /* ---- empty state ---- */
 .empty-state {
   text-align: center;
@@ -1919,6 +2185,10 @@ tbody tr:last-child td {
 }
 .empty-state .btn {
   margin: 0 auto;
+}
+.error-state .btn,
+.error-state .btn-outline {
+  margin: 0;
 }
 .empty-hint {
   margin-top: 14px;
@@ -2175,6 +2445,11 @@ tbody tr:last-child td {
 
 .announcement-card {
   border-left: 3px solid var(--gold);
+  transition: box-shadow 0.6s var(--ease), border-color 0.6s var(--ease);
+}
+.announcement-highlighted {
+  border-left-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0, 85, 251, 0.18), var(--shadow-md);
 }
 
 .name-cell {
@@ -2737,4 +3012,354 @@ input[type='radio']:checked::after {
 @keyframes noticeIn {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   Data Table system - search/filter/sort/paginate/bulk/menu
+   Used by DataTable.tsx. Builds on .table-wrap / .badge / .btn
+   tokens already defined above so it matches every other
+   surface in the app.
+   ========================================================= */
+
+.dt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.dt-toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dt-toolbar-spacer {
+  flex: 1;
+}
+.dt-count {
+  font-size: 12px;
+  color: var(--muted-2);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.dt-select {
+  font-size: 12.5px;
+  padding: 7px 30px 7px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23667085' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  width: auto;
+}
+.dt-select:hover { border-color: var(--muted-2); }
+
+/* ---- sortable column headers ---- */
+th.dt-th-sortable {
+  padding: 0;
+}
+.dt-th-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  transition: color 0.15s var(--ease);
+}
+.dt-th-btn:hover { color: var(--blue); }
+.dt-th-sort-icon {
+  display: inline-flex;
+  opacity: 0.35;
+  transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+}
+.dt-th-btn.dt-sorted .dt-th-sort-icon { opacity: 1; color: var(--blue); }
+
+/* ---- checkbox column ---- */
+.dt-checkbox-cell { width: 40px; }
+.dt-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  cursor: pointer;
+  display: block;
+}
+
+tr.dt-row-selected td {
+  background: rgba(0, 85, 251, 0.05);
+}
+
+/* ---- row action menu trigger ---- */
+.dt-actions-cell {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+.dt-menu-trigger {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+tbody tr:hover .dt-menu-trigger,
+.dt-card:hover .dt-menu-trigger,
+.dt-menu-trigger.dt-menu-open {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+.dt-menu-trigger:hover {
+  color: var(--blue);
+  border-color: var(--blue);
+}
+
+/* ---- dropdown / action menu panel ---- */
+.dt-menu-wrap {
+  position: relative;
+  display: inline-block;
+}
+.dt-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  z-index: 40;
+  overflow: hidden;
+}
+.dt-menu-panel.dt-menu-left {
+  right: auto;
+  left: 0;
+}
+.dt-menu-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-2);
+  padding: 6px 10px 4px;
+}
+.dt-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s var(--ease), color 0.12s var(--ease);
+  text-decoration: none;
+}
+.dt-menu-item:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.dt-menu-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.dt-menu-item svg { flex-shrink: 0; color: var(--muted); }
+.dt-menu-item:hover:not(:disabled) svg { color: var(--blue); }
+.dt-menu-item.dt-menu-item-danger { color: var(--danger); }
+.dt-menu-item.dt-menu-item-danger svg { color: var(--danger); }
+.dt-menu-item.dt-menu-item-danger:hover:not(:disabled) { background: rgba(220, 38, 38, 0.08); }
+.dt-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 5px 2px;
+}
+
+/* ---- bulk selection bar ---- */
+.dt-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 85, 251, 0.06);
+  flex-wrap: wrap;
+}
+.dt-bulk-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  margin-right: auto;
+}
+.dt-bulk-clear {
+  font-size: 12.5px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 4px;
+}
+.dt-bulk-clear:hover { color: var(--text); }
+
+/* ---- pagination footer ---- */
+.dt-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.dt-pagination-info {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.dt-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dt-page-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s var(--ease);
+}
+.dt-page-btn:hover:not(:disabled) {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.dt-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.dt-page-btn.dt-page-btn-active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+/* ---- loading skeleton rows ---- */
+.dt-skeleton-rows {
+  display: flex;
+  flex-direction: column;
+}
+.dt-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.dt-skeleton-row:last-child { border-bottom: none; }
+
+/* ---- responsive: table vs card view ---- */
+.dt-table-view { display: block; }
+.dt-card-view { display: none; }
+
+.dt-cards {
+  display: flex;
+  flex-direction: column;
+}
+.dt-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s var(--ease);
+}
+.dt-card:last-child { border-bottom: none; }
+.dt-card:active { background: var(--surface-2); }
+.dt-card.dt-row-selected { background: rgba(0, 85, 251, 0.05); }
+.dt-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.dt-card-checkbox {
+  padding-top: 3px;
+}
+.dt-card-body {
+  min-width: 0;
+  flex: 1;
+}
+.dt-card-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dt-card-subtitle {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.dt-card-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 8px;
+}
+.dt-card-field {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dt-card-field strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.dt-card-actions {
+  flex-shrink: 0;
+}
+
+@media (max-width: 780px) {
+  .dt-table-view { display: none; }
+  .dt-card-view { display: block; }
+  .dt-toolbar { padding: 12px 14px; }
+  .dt-pagination { padding: 10px 14px; }
 }

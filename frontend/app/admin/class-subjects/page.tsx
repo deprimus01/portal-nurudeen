@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BookOpen, Layers } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import type { SchoolClass, Subject } from '../../../lib/types';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 export default function ClassSubjectsPage() {
   const { t } = useLanguage();
@@ -17,18 +19,28 @@ export default function ClassSubjectsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.all([
-      api.get<SchoolClass[]>('/api/classes'),
-      api.get<Subject[]>('/api/subjects'),
-    ]).then(([c, s]) => {
+  async function load() {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [c, s] = await Promise.all([
+        api.get<SchoolClass[]>('/api/classes'),
+        api.get<Subject[]>('/api/subjects'),
+      ]);
       setClasses(c);
       setSubjects(s);
       if (c.length > 0) setClassId(c[0].id);
-    }).finally(() => setLoading(false));
-  }, []);
+    } catch (err) {
+      setLoadError(getErrorMessage(err, 'Failed to load.'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
 
   useEffect(() => {
     if (!classId) return;
@@ -49,7 +61,7 @@ export default function ClassSubjectsPage() {
       setClasses((cs) => cs.map((c) => (c.id === classId ? (updated as any) : c)));
       setSavedMessage('Saved.');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSaving(false);
     }
@@ -68,6 +80,10 @@ export default function ClassSubjectsPage() {
 
       {loading ? (
         <p style={{ color: 'var(--muted)' }}>Loading…</p>
+      ) : loadError && classes.length === 0 && subjects.length === 0 ? (
+        <div className="card">
+          <ErrorState description={loadError} onRetry={load} />
+        </div>
       ) : classes.length === 0 || subjects.length === 0 ? (
         <div className="card">
           <EmptyState

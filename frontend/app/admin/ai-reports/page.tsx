@@ -2,10 +2,11 @@
 
 import { useState, FormEvent } from 'react';
 import { Sparkles, Search } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import type { NlReportResponse } from '../../../lib/types';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 const EXAMPLE_QUESTIONS = [
   'Which students have attendance below 80% this month?',
@@ -30,7 +31,7 @@ export default function AdminAiReportsPage() {
       const res = await api.post<NlReportResponse>('/api/ai/nl-report', { question: q.trim() });
       setResult(res);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to run report.');
+      setError(getErrorMessage(err, 'Failed to run report.'));
     } finally {
       setLoading(false);
     }

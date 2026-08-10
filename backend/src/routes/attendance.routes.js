@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { logAction } from '../lib/auditLog.js';
 import { assertCanActOnClass } from '../lib/classAuthorization.js';
 import { assertCanViewStudentRecord } from '../lib/guardianOwnership.js';
+import { notifyAttendanceUpdate } from '../lib/notifications.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { markAttendanceSchema } from '../validation/attendance.schema.js';
@@ -102,6 +103,30 @@ router.post(
       entityType: 'AttendanceRecord',
       metadata: { classId, date: day.toISOString(), count: records.length },
     });
+
+    // Only ABSENT/LATE are notification-worthy — PRESENT is the expected
+    // default and marking a whole class present would otherwise fire a
+    // notification per student, every school day, for every family.
+    const flagged = records.filter((r) => r.status === 'ABSENT' || r.status === 'LATE');
+    if (flagged.length > 0) {
+      const students = await prisma.student.findMany({
+        where: { id: { in: flagged.map((r) => r.studentId) } },
+        select: { id: true, firstName: true, lastName: true },
+      });
+      const nameById = new Map(students.map((s) => [s.id, `${s.firstName} ${s.lastName}`]));
+      const dateLabel = day.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+      await Promise.all(
+        flagged.map((r) =>
+          notifyAttendanceUpdate({
+            studentId: r.studentId,
+            studentName: nameById.get(r.studentId),
+            status: r.status,
+            dateLabel,
+          }),
+        ),
+      );
+    }
 
     return res.json({ ok: true, count: records.length });
   }),

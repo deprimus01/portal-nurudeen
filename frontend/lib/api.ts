@@ -20,11 +20,45 @@ export function clearToken() {
 export class ApiError extends Error {
   status: number;
   field?: string;
+  /** The raw, unmodified message from the backend - always available for
+   *  logging/debugging, but never shown to the person using the app.
+   *  `message` above is what gets displayed; this is what a developer
+   *  would want in the console. */
+  devMessage: string;
 
-  constructor(message: string, status: number, field?: string) {
+  constructor(message: string, status: number, field?: string, devMessage?: string) {
     super(message);
     this.status = status;
     this.field = field;
+    this.devMessage = devMessage ?? message;
+  }
+}
+
+// Translates a raw backend error (status code + message) into something
+// safe and calm to show a non-technical person. The backend already
+// avoids leaking stack traces/DB errors (see errorHandler.js), but status
+// codes like 401/403/500 still map to developer-flavored defaults
+// ("Unauthorized", "Not found.") that read fine in a REST client but
+// badly in a school portal. Field-level validation messages (400) and
+// conflict messages (409) are written by the backend to already be
+// human-readable, so those pass through unchanged.
+function toFriendlyMessage(status: number, rawMessage: string, field?: string): string {
+  switch (status) {
+    case 401:
+      return 'Your session has ended. Please sign in again.';
+    case 403:
+      return "You don't have permission to do that.";
+    case 404:
+      return "We couldn't find what you were looking for.";
+    case 429:
+      return rawMessage; // already a calm, specific rate-limit message
+    case 400:
+    case 409:
+    case 422:
+      return field || rawMessage ? rawMessage : 'Please check the information you entered and try again.';
+    default:
+      if (status >= 500) return 'Something went wrong on our end. Please try again in a moment.';
+      return rawMessage || 'Something went wrong. Please try again.';
   }
 }
 
@@ -46,7 +80,7 @@ export interface CacheAwareResult<T> {
 // Falling back to cache on a real 403/500 would silently hide an actual
 // problem behind stale data, which is exactly what §2.5's "data
 // correctness first" principle rules out.
-function isNetworkFailure(err: unknown): boolean {
+export function isNetworkFailure(err: unknown): boolean {
   return err instanceof TypeError;
 }
 
@@ -73,7 +107,15 @@ async function requestWithCacheMeta<T>(path: string, options: RequestOptions = {
       if (res.status === 401) {
         clearToken();
       }
-      throw new ApiError(data?.error || 'Something went wrong.', res.status, data?.field);
+      const rawMessage = data?.error || 'Something went wrong.';
+      // Always keep the raw backend message reachable in devtools (as
+      // devMessage, and logged here) - only the text shown in the UI is
+      // softened, nothing useful to a developer is thrown away.
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error(`[API ${res.status}] ${path} ->`, rawMessage);
+      }
+      throw new ApiError(toFriendlyMessage(res.status, rawMessage, data?.field), res.status, data?.field, rawMessage);
     }
 
     if (cacheable) {

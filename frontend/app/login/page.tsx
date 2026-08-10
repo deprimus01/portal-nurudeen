@@ -4,10 +4,10 @@ import { useState, useEffect, FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, ShieldCheck, BookOpen, GraduationCap, Users } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
-import { ApiError } from '../../lib/api';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { useTheme } from '../../lib/theme-context';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { getErrorMessage } from '../../lib/errors';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -35,7 +35,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong.');
+      setError(getErrorMessage(err, 'Something went wrong.'));
     } finally {
       setSubmitting(false);
     }

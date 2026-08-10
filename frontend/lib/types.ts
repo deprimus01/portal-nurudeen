@@ -252,6 +252,34 @@ export interface NlReportResponse {
   truncated?: boolean;
 }
 
+export type SearchResultType =
+  | 'STUDENT'
+  | 'GUARDIAN'
+  | 'STAFF'
+  | 'CLASS'
+  | 'SUBJECT'
+  | 'EXAM'
+  | 'RESULT'
+  | 'ANNOUNCEMENT'
+  | 'MESSAGE'
+  | 'FEE';
+
+export interface SearchResultItem {
+  type: SearchResultType;
+  id: string;
+  title: string;
+  subtitle?: string;
+  meta?: string;
+  examId?: string;
+  studentId?: string;
+  userId?: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  results: SearchResultItem[];
+}
+
 export interface Enrollment {
   id: string;
   studentId: string;
@@ -261,4 +289,51 @@ export interface Enrollment {
   termId: string;
   term: Term;
   status: 'ACTIVE' | 'COMPLETED' | 'TRANSFERRED';
+}
+
+export type NotificationType =
+  | 'enrollment'
+  | 'staff'
+  | 'announcement'
+  | 'fee'
+  | 'system'
+  | 'exam'
+  | 'result'
+  | 'attendance'
+  | 'message';
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  entityType?: string | null;
+  entityId?: string | null;
+  read: boolean;
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface AttendanceReminder {
+  id: string;
+  type: 'attendance-reminder';
+  title: string;
+  body: string;
+  entityType?: string | null;
+  entityId?: string | null;
+}
+
+export interface NotificationsFeed {
+  notifications: AppNotification[];
+  unreadCount: number;
+  reminders: AttendanceReminder[];
+}
+
+export interface ActivityEntry {
+  id: string;
+  actorName: string;
+  detail: string;
+  entityType?: string | null;
+  entityId?: string | null;
+  createdAt: string;
 }

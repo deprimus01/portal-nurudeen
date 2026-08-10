@@ -3,6 +3,7 @@ import { sendEmail } from './email.js';
 import { sendSms } from './sms.js';
 import { credentialEmail, passwordResetEmail, announcementEmail, newMessageEmail } from './emailTemplates.js';
 import { credentialSms, passwordResetSms, announcementSms, newMessageSms } from './smsTemplates.js';
+import { notifySystemActivity } from './notifications.js';
 
 // Sends an email and records the outcome in NotificationLog. Never throws
 // — a delivery failure should never break the request that triggered it
@@ -111,7 +112,7 @@ export async function notifyNewAccount({ recipientType, recipientId, name, email
   const { subject, html, text } = credentialEmail({ name, email, tempPassword, accountType });
   const sms = credentialSms({ email, tempPassword, accountType });
 
-  return notifyBoth({
+  const result = await notifyBoth({
     email: {
       recipientType,
       recipientId,
@@ -129,6 +130,20 @@ export async function notifyNewAccount({ recipientType, recipientId, name, email
       logMessage: `Portal account ready — temp password relayed by SMS to ${phone || 'unknown number'}.`,
     },
   });
+
+  // Narrow, single-recipient trigger for the admin "system activity"
+  // feed — only fires when BOTH channels failed, i.e. an admin actually
+  // needs to hand the temp password to this person another way. Doesn't
+  // fire on every transient send failure to avoid becoming background
+  // noise.
+  if (!result.emailSent && !result.smsSent) {
+    notifySystemActivity({
+      title: 'System activity',
+      body: `Could not deliver portal credentials to ${name} by email or SMS. Share the temp password directly.`,
+    }).catch(() => {});
+  }
+
+  return result;
 }
 
 // Called after an admin force-resets a user's password (see
@@ -186,8 +201,8 @@ export async function notifyAnnouncementRecipients(announcement) {
         ? 'School-wide announcement'
         : `Announcement for ${announcement.class?.name || 'your child\u2019s class'}`;
 
-    await Promise.allSettled(
-      guardians.map((g) => {
+    const results = await Promise.allSettled(
+      guardians.map(async (g) => {
         const { subject, html, text } = announcementEmail({
           recipientName: `${g.firstName} ${g.lastName}`,
           title: announcement.title,
@@ -196,30 +211,50 @@ export async function notifyAnnouncementRecipients(announcement) {
         });
         const sms = announcementSms({ title: announcement.title, audienceLabel });
 
-        return notifyBoth({
-          email: g.user.notifyEmailAnnouncements
-            ? {
-                recipientType: 'guardian',
-                recipientId: g.id,
-                to: g.user.email,
-                subject,
-                html,
-                text,
-                logMessage: `Announcement "${announcement.title}" emailed to ${g.user.email}.`,
-              }
-            : null,
-          sms: g.user.notifySmsAnnouncements
-            ? {
-                recipientType: 'guardian',
-                recipientId: g.id,
-                to: g.phone,
-                message: sms,
-                logMessage: `Announcement "${announcement.title}" texted to ${g.phone || 'unknown number'}.`,
-              }
-            : null,
-        });
+        const emailArgs = g.user.notifyEmailAnnouncements
+          ? {
+              recipientType: 'guardian',
+              recipientId: g.id,
+              to: g.user.email,
+              subject,
+              html,
+              text,
+              logMessage: `Announcement "${announcement.title}" emailed to ${g.user.email}.`,
+            }
+          : null;
+        const smsArgs = g.user.notifySmsAnnouncements
+          ? {
+              recipientType: 'guardian',
+              recipientId: g.id,
+              to: g.phone,
+              message: sms,
+              logMessage: `Announcement "${announcement.title}" texted to ${g.phone || 'unknown number'}.`,
+            }
+          : null;
+
+        const { emailSent, smsSent } = await notifyBoth({ email: emailArgs, sms: smsArgs });
+
+        // "Failed" means every channel this guardian is actually opted
+        // into came back unsent — not counting channels they've opted
+        // out of, since that's a preference, not a delivery problem.
+        const failed = (emailArgs || smsArgs) && (!emailArgs || !emailSent) && (!smsArgs || !smsSent);
+        return { failed };
       }),
     );
+
+    const failedCount = results.filter((r) => r.status === 'fulfilled' && r.value.failed).length;
+
+    // One rolled-up admin notification per announcement, not one per
+    // guardian — a school-wide notice to hundreds of guardians shouldn't
+    // turn into hundreds of "system activity" items.
+    if (failedCount > 0) {
+      notifySystemActivity({
+        title: 'System activity',
+        body: `Announcement "${announcement.title}" failed to deliver to ${failedCount} guardian${failedCount === 1 ? '' : 's'} (${audienceLabel.toLowerCase()}).`,
+        entityType: 'Announcement',
+        entityId: announcement.id,
+      }).catch(() => {});
+    }
   } catch {
     // Swallow — this runs detached from the request/response cycle.
   }

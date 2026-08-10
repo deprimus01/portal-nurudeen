@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Award } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { Exam, ReportCard } from '../../lib/types';
 import { DashboardWidget } from '../ui/DashboardWidget';
 import { EmptyState } from '../ui/EmptyState';
 import { BarList } from '../ui/charts/BarList';
 import { Donut } from '../ui/charts/Donut';
+import { getErrorMessage } from '../../lib/errors';
 
 function gradeColor(grade: string | null) {
   if (!grade) return 'var(--muted-2)';
@@ -41,7 +42,7 @@ export function ResultsWidget({ studentId, href, title = 'Academic performance' 
         setExams(list);
         setExamId(list.length > 0 ? list[list.length - 1].id : '');
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load exams.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load exams.')))
       .finally(() => setLoading(false));
   }, [studentId]);
 
@@ -52,7 +53,7 @@ export function ResultsWidget({ studentId, href, title = 'Academic performance' 
     api
       .get<ReportCard>(`/api/results/report-card?studentId=${studentId}&examId=${examId}`)
       .then(setReport)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load report card.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load report card.')))
       .finally(() => setLoading(false));
   }, [studentId, examId]);
 

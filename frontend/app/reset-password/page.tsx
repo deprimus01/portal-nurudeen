@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { KeyRound, Lock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { getErrorMessage } from '../../lib/errors';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -38,7 +39,7 @@ export default function ResetPasswordPage() {
       await refresh();
       router.push('/admin');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong.');
+      setError(getErrorMessage(err, 'Something went wrong.'));
     } finally {
       setSubmitting(false);
     }

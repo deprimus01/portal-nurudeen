@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { AlertTriangle, TrendingDown } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api } from '../lib/api';
 import type { Flag, FlagsResponse, SchoolClass } from '../lib/types';
 import { EmptyState } from './ui/EmptyState';
 import { useLanguage } from '../lib/i18n/language-context';
+import { getErrorMessage } from '../lib/errors';
 
 // Shared by /admin/flags and /teacher/flags - the backend already scopes
 // results to the caller's role (Teacher only ever sees their own assigned
@@ -36,7 +37,7 @@ export function FlagsPanel({ showClassFilter }: { showClassFilter: boolean }) {
         setFlags(res.flags);
         setNote(res.note);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load flags.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load flags.')))
       .finally(() => setLoading(false));
   }, [classId]);
 

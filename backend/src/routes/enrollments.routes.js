@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
 import { logAction } from '../lib/auditLog.js';
+import { notifyNewEnrollment } from '../lib/notifications.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { createEnrollmentSchema, updateEnrollmentSchema } from '../validation/academic.schema.js';
@@ -57,6 +58,12 @@ router.post(
       action: 'enrollment.create',
       entityType: 'Enrollment',
       entityId: enrollment.id,
+    });
+
+    await notifyNewEnrollment({
+      actorUserId: req.user.id,
+      studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`,
+      className: enrollment.class.name,
     });
 
     return res.status(201).json(enrollment);

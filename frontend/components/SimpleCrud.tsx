@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Inbox, LucideIcon, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { Check, Inbox, LucideIcon, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { api } from '../lib/api';
 import { EmptyState, EmptyStateTone } from './ui/EmptyState';
+import { getErrorMessage } from '../lib/errors';
+import { DataTable, DataTableColumn } from './ui/table/DataTable';
+import type { ActionMenuItem } from './ui/table/ActionMenu';
 
 interface FieldConfig {
   name: string;
@@ -60,7 +63,12 @@ export function SimpleCrud({
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    // Deep-link support for the global search feature - lets a search
+    // result land here with the matching row already filtered into view.
+    return new URLSearchParams(window.location.search).get('q') || '';
+  });
 
   async function load() {
     setLoading(true);
@@ -68,7 +76,7 @@ export function SimpleCrud({
       const data = await api.get<any[]>(endpoint);
       setItems(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load.');
+      setError(getErrorMessage(err, 'Failed to load.'));
     } finally {
       setLoading(false);
     }
@@ -96,7 +104,7 @@ export function SimpleCrud({
         closeForm();
       }, 550);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSubmitting(false);
     }
@@ -130,22 +138,25 @@ export function SimpleCrud({
       await api.delete(`${endpoint}/${item.id}`);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete.');
+      setError(getErrorMessage(err, 'Failed to delete.'));
     } finally {
       setDeletingId(null);
     }
   }
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return items;
-    const q = query.toLowerCase();
-    return items.filter((item) =>
-      columns.some((c) => {
-        const val = c.render ? '' : item[c.key];
-        return String(val ?? '').toLowerCase().includes(q);
-      }),
-    );
-  }, [items, query, columns]);
+  async function handleBulkDelete(rows: any[]) {
+    if (rows.length === 0) return;
+    if (!window.confirm(`Delete ${rows.length} item(s)? This can't be undone.`)) return;
+    setError(null);
+    try {
+      await Promise.all(rows.map((item) => api.delete(`${endpoint}/${item.id}`)));
+      await load();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to delete selected items.'));
+    }
+  }
+
+  const singular = title.replace(/s$/, '');
 
   return (
     <div>
@@ -156,7 +167,7 @@ export function SimpleCrud({
         </div>
         <button className="btn" onClick={() => (showForm ? closeForm() : setShowForm(true))}>
           {showForm ? <X size={15} /> : <Plus size={15} />}
-          {showForm ? 'Cancel' : `Add ${title.replace(/s$/, '')}`}
+          {showForm ? 'Cancel' : `Add ${singular}`}
         </button>
       </div>
 
@@ -173,7 +184,7 @@ export function SimpleCrud({
           >
             {editingId && (
               <p style={{ fontSize: '0.8rem', color: 'var(--muted)', margin: '0 0 0.9rem' }}>
-                Editing "{title.replace(/s$/, '')}"
+                Editing "{singular}"
               </p>
             )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.9rem' }}>
@@ -227,93 +238,59 @@ export function SimpleCrud({
         )}
       </AnimatePresence>
 
-      <div className="table-wrap">
-        {items.length > 0 && (
-          <div className="table-toolbar">
-            <div className="shell-search" style={{ maxWidth: 280, flex: 'none' }}>
-              <Search size={14} />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={`Search ${title.toLowerCase()}…`}
-                style={{ border: 'none', background: 'transparent', padding: 0 }}
-              />
-            </div>
-            <span className="filter-chip active">{filtered.length} of {items.length}</span>
-          </div>
-        )}
+      {!showForm && error && items.length > 0 && <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>}
 
-        {loading ? (
-          <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="skeleton" style={{ height: 18, width: `${90 - i * 8}%` }} />
-            ))}
-          </div>
-        ) : items.length === 0 ? (
+      <DataTable<any>
+        rows={items}
+        getRowId={(item) => item.id}
+        loading={loading}
+        selectable
+        bulkActions={[{ label: 'Delete selected', icon: Trash2, danger: true, onClick: handleBulkDelete }]}
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchKeys={(item) => columns.map((c) => (c.render ? '' : String(item[c.key] ?? ''))).join(' ')}
+        searchPlaceholder={`Search ${title.toLowerCase()}…`}
+        emptyState={
           <EmptyState
             icon={emptyIcon || Inbox}
-            title={emptyTitle || `No ${title.toLowerCase()} yet`}
-            description={emptyDescription || `Add your first ${title.replace(/s$/, '').toLowerCase()} to get started.`}
+            title={items.length === 0 ? (emptyTitle || `No ${title.toLowerCase()} yet`) : `No matching ${title.toLowerCase()}`}
+            description={
+              items.length === 0
+                ? emptyDescription || `Add your first ${singular.toLowerCase()} to get started.`
+                : `No ${title.toLowerCase()} match "${query}".`
+            }
             tone={emptyTone}
             action={
-              <button className="btn" onClick={() => setShowForm(true)}>
-                <Plus size={15} /> Add {title.replace(/s$/, '')}
-              </button>
+              items.length === 0 ? (
+                <button className="btn" onClick={() => setShowForm(true)}>
+                  <Plus size={15} /> Add {singular}
+                </button>
+              ) : undefined
             }
           />
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                {columns.map((c) => <th key={c.key}>{c.label}</th>)}
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item, i) => (
-                <motion.tr
-                  key={item.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2, delay: Math.min(i, 10) * 0.02 }}
-                >
-                  {columns.map((c) => (
-                    <td key={c.key}>{c.render ? c.render(item) : item[c.key]}</td>
-                  ))}
-                  <td>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button
-                        type="button"
-                        className="shell-icon-btn"
-                        onClick={() => startEdit(item)}
-                        aria-label={`Edit ${item[columns[0]?.key] ?? 'item'}`}
-                        title="Edit"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="shell-icon-btn"
-                        onClick={() => handleDelete(item)}
-                        disabled={deletingId === item.id}
-                        aria-label={`Delete ${item[columns[0]?.key] ?? 'item'}`}
-                        title="Delete"
-                        style={{ color: 'var(--danger)' }}
-                      >
-                        {deletingId === item.id ? (
-                          <span className="login-spinner" aria-hidden="true" style={{ width: 14, height: 14 }} />
-                        ) : (
-                          <Trash2 size={14} />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+        }
+        columns={columns.map((c, i) => ({
+          key: c.key,
+          label: c.label,
+          cardRole: i === 0 ? 'title' : i === 1 ? 'subtitle' : 'field',
+          sortAccessor: c.render ? undefined : (item: any) => item[c.key],
+          render: c.render,
+        })) as DataTableColumn<any>[]}
+        actions={(item: any) => {
+          const items2: ActionMenuItem[] = [
+            { label: `Edit`, icon: Pencil, onClick: () => startEdit(item) },
+            {
+              label: deletingId === item.id ? 'Deleting…' : 'Delete',
+              icon: Trash2,
+              danger: true,
+              disabled: deletingId === item.id,
+              onClick: () => handleDelete(item),
+              separatorBefore: true,
+            },
+          ];
+          return items2;
+        }}
+      />
     </div>
   );
 }

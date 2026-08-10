@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, CreditCard, FileText, Plus, TrendingUp, Wallet, X } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import type { FeeStructure, Invoice, SchoolClass, Term } from '../../../lib/types';
 import { StatCard } from '../../../components/ui/StatCard';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -60,7 +62,7 @@ export default function AdminFeesPage() {
       setStructures(s);
       setInvoices(i);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load.');
+      setError(getErrorMessage(err, 'Failed to load.'));
     } finally {
       setLoading(false);
     }
@@ -85,7 +87,7 @@ export default function AdminFeesPage() {
       setShowStructureForm(false);
       await loadAll();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSavingStructure(false);
     }
@@ -101,7 +103,7 @@ export default function AdminFeesPage() {
       setGenMessage(result.message || `Created ${result.created} invoice(s).`);
       await loadAll();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to generate invoices.');
+      setError(getErrorMessage(err, 'Failed to generate invoices.'));
     } finally {
       setGenerating(false);
     }
@@ -121,7 +123,7 @@ export default function AdminFeesPage() {
       setPayForm({ invoiceId: '', amount: '', method: 'CASH', reference: '' });
       await loadAll();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to record payment.');
+      setError(getErrorMessage(err, 'Failed to record payment.'));
     } finally {
       setPaying(false);
     }
@@ -153,8 +155,16 @@ export default function AdminFeesPage() {
           <p className="page-sub" style={{ margin: 0 }}>Fee structures, invoices and payments.</p>
         </div>
       </div>
-      {error && <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>}
+      {error && (structures.length > 0 || invoices.length > 0) && (
+        <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>
+      )}
 
+      {!loading && error && structures.length === 0 && invoices.length === 0 ? (
+        <div className="card">
+          <ErrorState description={error} onRetry={loadAll} />
+        </div>
+      ) : (
+      <>
       <div className="stat-grid">
         <StatCard label="Total invoiced" value={loading ? undefined : naira(summary.invoiced)} icon={FileText} accent="navy" index={0} />
         <StatCard label="Collected" value={loading ? undefined : naira(summary.collected)} icon={TrendingUp} accent="green" index={1} />
@@ -351,6 +361,8 @@ export default function AdminFeesPage() {
           </table>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

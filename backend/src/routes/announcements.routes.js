@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { logAction } from '../lib/auditLog.js';
 import { assertCanActOnClass } from '../lib/classAuthorization.js';
 import { notifyAnnouncementRecipients } from '../lib/notify.js';
+import { notifyAnnouncement } from '../lib/notifications.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { createAnnouncementSchema } from '../validation/messaging.schema.js';
@@ -107,6 +108,10 @@ router.post(
     // delivery happens in the background and each send is individually
     // logged to NotificationLog (see lib/notify.js).
     notifyAnnouncementRecipients(announcement);
+
+    // In-app bell notification — separate write from the email/SMS fan-out
+    // above, same fire-and-forget treatment.
+    notifyAnnouncement({ actorUserId: req.user.id, announcement });
 
     return res.status(201).json(announcement);
   }),

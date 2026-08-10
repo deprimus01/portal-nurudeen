@@ -7,19 +7,27 @@ import { api } from '../../../lib/api';
 import { ResultsEntry } from '../../../components/ResultsEntry';
 import type { Exam, Subject } from '../../../lib/types';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 export default function AdminResultsPage() {
   const { t } = useLanguage();
   const [exams, setExams] = useState<Exam[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     Promise.all([api.get<Exam[]>('/api/exams'), api.get<Subject[]>('/api/subjects')])
       .then(([e, s]) => { setExams(e); setSubjects(s); })
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   return (
     <div>
@@ -27,6 +35,10 @@ export default function AdminResultsPage() {
 
       {loading ? (
         <p style={{ color: 'var(--muted)' }}>Loading…</p>
+      ) : error && exams.length === 0 ? (
+        <div className="card">
+          <ErrorState description={error} onRetry={load} />
+        </div>
       ) : exams.length === 0 ? (
         <div className="card">
           <EmptyState

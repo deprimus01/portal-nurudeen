@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FileText, TrendingUp, UserCircle, Wallet } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import type { Invoice } from '../../../lib/types';
 import { StatCard } from '../../../components/ui/StatCard';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { OfflineBanner } from '../../../components/ui/OfflineBanner';
+import { getErrorMessage } from '../../../lib/errors';
 
 function naira(kobo: number) {
   return `\u20a6${(kobo / 100).toLocaleString()}`;
@@ -22,15 +24,19 @@ export default function GuardianFeesPage() {
   const [error, setError] = useState<string | null>(null);
   const [cachedAt, setCachedAt] = useState<number | undefined>();
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     api.getWithCache<Invoice[]>('/api/fees/invoices')
       .then((res) => {
         setInvoices(res.data);
         setCachedAt(res.fromCache ? res.cachedAt : undefined);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const summary = useMemo(() => {
     let invoiced = 0;
@@ -55,7 +61,7 @@ export default function GuardianFeesPage() {
     <div>
       <div className="topbar"><h1 className="page-title">Fees</h1></div>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && invoices.length > 0 && <p className="error-text">{error}</p>}
       {cachedAt !== undefined && <OfflineBanner cachedAt={cachedAt} />}
 
       <div className="stat-grid">
@@ -71,6 +77,8 @@ export default function GuardianFeesPage() {
               <div key={i} className="skeleton" style={{ height: 18, width: `${88 - i * 6}%` }} />
             ))}
           </div>
+        ) : invoices.length === 0 && error ? (
+          <ErrorState description={error} onRetry={load} />
         ) : invoices.length === 0 ? (
           <EmptyState
             icon={FileText}

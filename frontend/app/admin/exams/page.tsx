@@ -3,10 +3,12 @@
 import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { FileText } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import type { Exam, Term, SchoolClass, GradingScheme } from '../../../lib/types';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 const EMPTY = { name: '', termId: '', classId: '', gradingSchemeId: '' };
 
@@ -27,7 +29,7 @@ export default function ExamsPage() {
     try {
       setExams(await api.get<Exam[]>('/api/exams'));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load.');
+      setError(getErrorMessage(err, 'Failed to load.'));
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ export default function ExamsPage() {
       setShowForm(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSubmitting(false);
     }
@@ -110,6 +112,8 @@ export default function ExamsPage() {
       <div className="card">
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
+        ) : exams.length === 0 && error ? (
+          <ErrorState description={error} onRetry={load} />
         ) : exams.length === 0 ? (
           <EmptyState
             icon={FileText}

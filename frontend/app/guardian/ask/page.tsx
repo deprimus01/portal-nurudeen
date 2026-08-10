@@ -3,8 +3,9 @@
 import { useState, FormEvent } from 'react';
 import { MessageCircleQuestion, Sparkles, UserCircle } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { getErrorMessage } from '../../../lib/errors';
 
 interface QaEntry {
   question: string;
@@ -35,7 +36,7 @@ export default function GuardianAskPage() {
       setHistory((h) => [...h, { question: askedQuestion, answer: result.answer }]);
       setQuestion('');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to get an answer.');
+      setError(getErrorMessage(err, 'Failed to get an answer.'));
     } finally {
       setAsking(false);
     }

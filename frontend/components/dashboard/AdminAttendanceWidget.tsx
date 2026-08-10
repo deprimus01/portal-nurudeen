@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { CheckSquare } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { SchoolClass } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
 import { Donut } from '../ui/charts/Donut';
+import { getErrorMessage } from '../../lib/errors';
 
 interface RosterEntry {
   studentId: string;
@@ -47,7 +48,7 @@ export function AdminAttendanceWidget({ href, title = 'Attendance overview' }: {
         );
         setRosters(new Map(entries));
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load attendance.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load attendance.')))
       .finally(() => setLoading(false));
   }, []);
 

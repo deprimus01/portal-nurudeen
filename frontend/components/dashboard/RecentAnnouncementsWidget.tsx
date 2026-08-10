@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { Megaphone } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { Announcement } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
+import { getErrorMessage } from '../../lib/errors';
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -33,7 +34,7 @@ export function RecentAnnouncementsWidget({ href, limit = 4 }: { href: string; l
     api
       .get<Announcement[]>('/api/announcements')
       .then(setAnnouncements)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load announcements.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load announcements.')))
       .finally(() => setLoading(false));
   }, []);
 

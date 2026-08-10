@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarClock, Layers, X } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import type { SchoolClass, Subject, Staff, TimetableSlot } from '../../../lib/types';
 import { DAYS, PERIODS, slotKey, TimetableGrid } from '../../../components/ui/TimetableGrid';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -49,7 +51,7 @@ export default function AdminTimetablePage() {
       data.forEach((s) => map.set(slotKey(s.dayOfWeek, s.period), s));
       setSlots(map);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load timetable.');
+      setError(getErrorMessage(err, 'Failed to load timetable.'));
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,7 @@ export default function AdminTimetablePage() {
       setSlots((m) => new Map(m).set(slotKey(editingCell.day, editingCell.period), slot));
       setEditingCell(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSaving(false);
     }
@@ -109,7 +111,7 @@ export default function AdminTimetablePage() {
       });
       setEditingCell(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to clear.');
+      setError(getErrorMessage(err, 'Failed to clear.'));
     } finally {
       setSaving(false);
     }
@@ -200,6 +202,12 @@ export default function AdminTimetablePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {error && !editingCell && (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <ErrorState compact description={error} onRetry={() => loadSlots(classId)} />
+        </div>
+      )}
 
       <TimetableGrid
         slots={slots}

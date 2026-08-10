@@ -1,0 +1,431 @@
+'use client';
+
+import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, LucideIcon, Search } from 'lucide-react';
+import { ActionMenu, ActionMenuItem } from './ActionMenu';
+
+export interface DataTableColumn<T> {
+  key: string;
+  label: string;
+  render?: (row: T) => ReactNode;
+  /** Enables sorting on this column. Return the raw comparable value (not the rendered node). */
+  sortAccessor?: (row: T) => string | number | null | undefined;
+  align?: 'left' | 'right' | 'center';
+  width?: string;
+  className?: string;
+  /** Where this column's value lands in the mobile card layout. Defaults to 'field'. */
+  cardRole?: 'title' | 'subtitle' | 'field' | 'hidden';
+  cardLabel?: string;
+}
+
+export interface DataTableBulkAction<T> {
+  label: string;
+  icon?: LucideIcon;
+  onClick: (rows: T[]) => void;
+  danger?: boolean;
+}
+
+interface DataTableProps<T> {
+  columns: DataTableColumn<T>[];
+  rows: T[];
+  getRowId: (row: T) => string;
+  loading?: boolean;
+  skeletonRows?: number;
+  emptyState: ReactNode;
+  /** Controlled search (e.g. hits the backend). If provided, `rows` is assumed pre-filtered. */
+  searchValue?: string;
+  onSearchChange?: (v: string) => void;
+  /** Uncontrolled/client-side search - provide the text to match against for each row. */
+  searchKeys?: (row: T) => string;
+  searchPlaceholder?: string;
+  /** Extra filter chips/selects the page wants next to the search box. */
+  filters?: ReactNode;
+  pageSize?: number;
+  selectable?: boolean;
+  bulkActions?: DataTableBulkAction<T>[];
+  actions?: (row: T) => ActionMenuItem[];
+  renderCard?: (row: T, actionsMenu: ReactNode) => ReactNode;
+  rowClassName?: (row: T) => string;
+  /** Hides the toolbar entirely (search/filters) - use when the page has nothing to search or filter. */
+  hideToolbar?: boolean;
+}
+
+function compareValues(a: string | number | null | undefined, b: string | number | null | undefined) {
+  if (a == null && b == null) return 0;
+  if (a == null) return -1;
+  if (b == null) return 1;
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function initialsOf(text: string) {
+  const parts = text.trim().split(/\s+/).filter(Boolean);
+  return (parts[0]?.[0] || '') + (parts[1]?.[0] || '');
+}
+
+export function DataTable<T>({
+  columns,
+  rows,
+  getRowId,
+  loading = false,
+  skeletonRows = 5,
+  emptyState,
+  searchValue,
+  onSearchChange,
+  searchKeys,
+  searchPlaceholder = 'Search…',
+  filters,
+  pageSize = 10,
+  selectable = false,
+  bulkActions,
+  actions,
+  renderCard,
+  rowClassName,
+  hideToolbar = false,
+}: DataTableProps<T>) {
+  const isControlledSearch = onSearchChange !== undefined;
+  const [internalQuery, setInternalQuery] = useState('');
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const query = isControlledSearch ? searchValue || '' : internalQuery;
+  const hasSearch = isControlledSearch || !!searchKeys;
+
+  const searched = useMemo(() => {
+    if (isControlledSearch || !searchKeys || !internalQuery.trim()) return rows;
+    const q = internalQuery.trim().toLowerCase();
+    return rows.filter((r) => searchKeys(r).toLowerCase().includes(q));
+  }, [rows, searchKeys, internalQuery, isControlledSearch]);
+
+  const sorted = useMemo(() => {
+    if (!sort) return searched;
+    const col = columns.find((c) => c.key === sort.key);
+    if (!col?.sortAccessor) return searched;
+    const copy = [...searched];
+    copy.sort((a, b) => {
+      const cmp = compareValues(col.sortAccessor!(a), col.sortAccessor!(b));
+      return sort.dir === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [searched, sort, columns]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const signature = `${rows.length}|${query}`;
+
+  useEffect(() => {
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paged = useMemo(
+    () => sorted.slice((page - 1) * pageSize, page * pageSize),
+    [sorted, page, pageSize],
+  );
+
+  function toggleSort(key: string) {
+    setSort((s) => {
+      if (!s || s.key !== key) return { key, dir: 'asc' };
+      if (s.dir === 'asc') return { key, dir: 'desc' };
+      return null;
+    });
+  }
+
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const pageIds = paged.map(getRowId);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+
+  function toggleSelectAllOnPage() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }
+
+  const selectedRows = rows.filter((r) => selected.has(getRowId(r)));
+  const colCount = columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0);
+
+  function renderAutoCard(row: T, id: string, actionsMenu: ReactNode) {
+    const titleCol = columns.find((c) => c.cardRole === 'title') || columns[0];
+    const subtitleCol = columns.find((c) => c.cardRole === 'subtitle');
+    const fieldCols = columns.filter(
+      (c) => c !== titleCol && c !== subtitleCol && c.cardRole !== 'hidden',
+    );
+    const titleText = titleCol.render ? titleCol.render(row) : String((row as any)[titleCol.key] ?? '');
+    const titlePlain = typeof titleText === 'string' ? titleText : '';
+
+    return (
+      <div className={`dt-card${selected.has(id) ? ' dt-row-selected' : ''}`}>
+        <div className="dt-card-main">
+          {selectable && (
+            <div className="dt-card-checkbox">
+              <input
+                type="checkbox"
+                className="dt-checkbox"
+                checked={selected.has(id)}
+                onChange={() => toggleRow(id)}
+                aria-label="Select row"
+              />
+            </div>
+          )}
+          {titlePlain && (
+            <div className="shell-avatar" style={{ width: 32, height: 32, fontSize: 11, flexShrink: 0 }}>
+              {initialsOf(titlePlain).toUpperCase() || '?'}
+            </div>
+          )}
+          <div className="dt-card-body">
+            <div className="dt-card-title">{titleText}</div>
+            {subtitleCol && (
+              <div className="dt-card-subtitle">
+                {subtitleCol.render ? subtitleCol.render(row) : String((row as any)[subtitleCol.key] ?? '')}
+              </div>
+            )}
+            <div className="dt-card-fields">
+              {fieldCols.map((c) => (
+                <span className="dt-card-field" key={c.key}>
+                  {c.cardLabel !== '' && <>{c.cardLabel ?? c.label}:</>}{' '}
+                  <strong>{c.render ? c.render(row) : String((row as any)[c.key] ?? '—')}</strong>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        {actionsMenu && <div className="dt-card-actions">{actionsMenu}</div>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="table-wrap">
+      {!hideToolbar && (hasSearch || filters || rows.length > 0) && (
+        <div className="dt-toolbar">
+          {hasSearch && (
+            <div className="shell-search" style={{ maxWidth: 280, flex: 'none' }}>
+              <Search size={14} />
+              <input
+                value={query}
+                onChange={(e) => {
+                  if (isControlledSearch) onSearchChange?.(e.target.value);
+                  else setInternalQuery(e.target.value);
+                }}
+                placeholder={searchPlaceholder}
+                style={{ border: 'none', background: 'transparent', padding: 0 }}
+              />
+            </div>
+          )}
+          {filters && <div className="dt-toolbar-filters">{filters}</div>}
+          <div className="dt-toolbar-spacer" />
+          {!loading && sorted.length > 0 && (
+            <span className="dt-count">
+              {sorted.length} {sorted.length === 1 ? 'result' : 'results'}
+            </span>
+          )}
+        </div>
+      )}
+
+      {selectable && selected.size > 0 && (
+        <div className="dt-bulk-bar">
+          <span className="dt-bulk-count">{selected.size} selected</span>
+          {bulkActions?.map((a) => (
+            <button
+              key={a.label}
+              type="button"
+              className={a.danger ? 'btn btn-danger' : 'btn btn-outline'}
+              style={{ padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
+              onClick={() => a.onClick(selectedRows)}
+            >
+              {a.icon && <a.icon size={13} />}
+              {a.label}
+            </button>
+          ))}
+          <button type="button" className="dt-bulk-clear" onClick={() => setSelected(new Set())}>
+            Clear
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="dt-skeleton-rows">
+          {[...Array(skeletonRows)].map((_, i) => (
+            <div key={i} className="dt-skeleton-row">
+              <div className="skeleton" style={{ height: 30, width: 30, borderRadius: 8, flexShrink: 0 }} />
+              <div className="skeleton" style={{ height: 14, width: `${70 - i * 6}%` }} />
+            </div>
+          ))}
+        </div>
+      ) : sorted.length === 0 ? (
+        emptyState
+      ) : (
+        <>
+          <div className="dt-table-view">
+            <table>
+              <thead>
+                <tr>
+                  {selectable && (
+                    <th className="dt-checkbox-cell">
+                      <input
+                        type="checkbox"
+                        className="dt-checkbox"
+                        checked={allPageSelected}
+                        onChange={toggleSelectAllOnPage}
+                        aria-label="Select all rows on this page"
+                      />
+                    </th>
+                  )}
+                  {columns.map((c) =>
+                    c.sortAccessor ? (
+                      <th key={c.key} className="dt-th-sortable" style={{ width: c.width }}>
+                        <button
+                          type="button"
+                          className={`dt-th-btn${sort?.key === c.key ? ' dt-sorted' : ''}`}
+                          onClick={() => toggleSort(c.key)}
+                          style={{ justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start' }}
+                        >
+                          {c.label}
+                          <span className="dt-th-sort-icon">
+                            {sort?.key === c.key ? (
+                              sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+                            ) : (
+                              <ArrowUpDown size={12} />
+                            )}
+                          </span>
+                        </button>
+                      </th>
+                    ) : (
+                      <th key={c.key} style={{ width: c.width, textAlign: c.align }}>
+                        {c.label}
+                      </th>
+                    ),
+                  )}
+                  {actions && <th className="dt-actions-cell"></th>}
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map((row, i) => {
+                  const id = getRowId(row);
+                  const rowActions = actions?.(row) || [];
+                  return (
+                    <motion.tr
+                      key={id}
+                      className={`${selected.has(id) ? 'dt-row-selected ' : ''}${rowClassName?.(row) || ''}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2, delay: Math.min(i, 10) * 0.02 }}
+                    >
+                      {selectable && (
+                        <td className="dt-checkbox-cell">
+                          <input
+                            type="checkbox"
+                            className="dt-checkbox"
+                            checked={selected.has(id)}
+                            onChange={() => toggleRow(id)}
+                            aria-label="Select row"
+                          />
+                        </td>
+                      )}
+                      {columns.map((c) => (
+                        <td key={c.key} className={c.className} style={{ textAlign: c.align }}>
+                          {c.render ? c.render(row) : String((row as any)[c.key] ?? '—')}
+                        </td>
+                      ))}
+                      {actions && (
+                        <td className="dt-actions-cell">
+                          {rowActions.length > 0 && <ActionMenu items={rowActions} />}
+                        </td>
+                      )}
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="dt-card-view">
+            <div className="dt-cards">
+              {paged.map((row) => {
+                const id = getRowId(row);
+                const rowActions = actions?.(row) || [];
+                const menu = rowActions.length > 0 ? <ActionMenu items={rowActions} /> : null;
+                return (
+                  <div key={id}>
+                    {renderCard ? renderCard(row, menu) : renderAutoCard(row, id, menu)}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {sorted.length > pageSize && (
+            <div className="dt-pagination">
+              <span className="dt-pagination-info">
+                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
+              </span>
+              <div className="dt-pagination-controls">
+                <button
+                  type="button"
+                  className="dt-page-btn"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                {Array.from({ length: totalPages })
+                  .map((_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                  .reduce<number[]>((acc, p) => {
+                    if (acc.length && p - acc[acc.length - 1] > 1) acc.push(-1);
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === -1 ? (
+                      <span key={`gap-${i}`} style={{ color: 'var(--muted-2)', fontSize: 12, padding: '0 2px' }}>
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        type="button"
+                        className={`dt-page-btn${p === page ? ' dt-page-btn-active' : ''}`}
+                        onClick={() => setPage(p)}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+                <button
+                  type="button"
+                  className="dt-page-btn"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

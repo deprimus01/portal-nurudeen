@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { logAction } from '../lib/auditLog.js';
 import { computeReportCard } from '../lib/reportCard.js';
 import { assertCanViewStudentRecord } from '../lib/guardianOwnership.js';
+import { notifyResultsPublished } from '../lib/notifications.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { markResultsSchema } from '../validation/results.schema.js';
@@ -109,6 +110,25 @@ router.post(
       entityType: 'Result',
       metadata: { examId, subjectId, count: records.length },
     });
+
+    const [exam, subject] = await Promise.all([
+      prisma.exam.findUnique({ where: { id: examId }, select: { name: true } }),
+      prisma.subject.findUnique({ where: { id: subjectId }, select: { name: true } }),
+    ]);
+
+    // One notification per affected student (+ their guardians) — the
+    // recipients themselves only see their own child's result, so this
+    // isn't a bulk blast even though it's one route call for a whole class.
+    await Promise.all(
+      records.map((r) =>
+        notifyResultsPublished({
+          studentId: r.studentId,
+          subjectName: subject?.name || 'a subject',
+          examName: exam?.name || 'an exam',
+          examId,
+        }),
+      ),
+    );
 
     return res.json({ ok: true, count: records.length });
   }),

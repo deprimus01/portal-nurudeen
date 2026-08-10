@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useRef, useState, FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Megaphone, Plus, Trash2, X } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api } from '../lib/api';
 import { useAuth } from '../lib/auth-context';
 import type { Announcement, SchoolClass } from '../lib/types';
 import { EmptyState } from './ui/EmptyState';
 import { OfflineBanner } from './ui/OfflineBanner';
+import { getErrorMessage } from '../lib/errors';
 
 interface AnnouncementsBoardProps {
   role: 'ADMIN' | 'TEACHER' | 'GUARDIAN' | 'STUDENT';
@@ -38,6 +39,11 @@ export function AnnouncementsBoard({ role }: AnnouncementsBoardProps) {
 
   const myStaffId = (user?.profile as { id?: string } | null)?.id;
   const readOnly = role === 'GUARDIAN' || role === 'STUDENT';
+  // Deep-link support for the global search feature: scrolls to and
+  // briefly highlights the matching card once it's loaded.
+  const highlightId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('highlight') : null;
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const [highlighted, setHighlighted] = useState(!!highlightId);
 
   async function load() {
     setLoading(true);
@@ -46,7 +52,7 @@ export function AnnouncementsBoard({ role }: AnnouncementsBoardProps) {
       setAnnouncements(res.data);
       setCachedAt(res.fromCache ? res.cachedAt : undefined);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load announcements.');
+      setError(getErrorMessage(err, 'Failed to load announcements.'));
     } finally {
       setLoading(false);
     }
@@ -62,6 +68,19 @@ export function AnnouncementsBoard({ role }: AnnouncementsBoardProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, user]);
+
+  useEffect(() => {
+    if (!highlightId || announcements.length === 0) return;
+    const id = requestAnimationFrame(() => {
+      highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    const fade = setTimeout(() => setHighlighted(false), 2400);
+    return () => {
+      cancelAnimationFrame(id);
+      clearTimeout(fade);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [announcements, highlightId]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -80,7 +99,7 @@ export function AnnouncementsBoard({ role }: AnnouncementsBoardProps) {
       setShowForm(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to post announcement.');
+      setError(getErrorMessage(err, 'Failed to post announcement.'));
     } finally {
       setSubmitting(false);
     }
@@ -92,7 +111,7 @@ export function AnnouncementsBoard({ role }: AnnouncementsBoardProps) {
       await api.delete(`/api/announcements/${id}`);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to remove announcement.');
+      setError(getErrorMessage(err, 'Failed to remove announcement.'));
     }
   }
 
@@ -220,10 +239,12 @@ export function AnnouncementsBoard({ role }: AnnouncementsBoardProps) {
           {announcements.map((a, i) => {
             const canDelete = !readOnly && (role === 'ADMIN' || a.authorStaff?.id === myStaffId);
             const authorName = a.authorStaff ? `${a.authorStaff.firstName} ${a.authorStaff.lastName}` : 'Admin';
+            const isHighlighted = highlightId === a.id;
             return (
               <motion.div
-                className="card announcement-card"
+                className={`card announcement-card${isHighlighted && highlighted ? ' announcement-highlighted' : ''}`}
                 key={a.id}
+                ref={isHighlighted ? highlightRef : undefined}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: Math.min(i, 8) * 0.04, ease: EASE }}

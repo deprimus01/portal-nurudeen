@@ -2,10 +2,12 @@
 
 import { useEffect, useState, FormEvent } from 'react';
 import { ListChecks, Plus } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import type { GradingScheme, GradingBand } from '../../../lib/types';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 function emptyBand(): GradingBand {
   return { minScore: 0, maxScore: 0, grade: '', remark: '' };
@@ -27,7 +29,7 @@ export default function GradingSchemesPage() {
     try {
       setSchemes(await api.get<GradingScheme[]>('/api/grading-schemes'));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load.');
+      setError(getErrorMessage(err, 'Failed to load.'));
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ export default function GradingSchemesPage() {
       setShowForm(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSubmitting(false);
     }
@@ -137,6 +139,8 @@ export default function GradingSchemesPage() {
       <div className="card">
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>Loading…</p>
+        ) : schemes.length === 0 && error ? (
+          <ErrorState description={error} onRetry={load} />
         ) : schemes.length === 0 ? (
           <EmptyState
             icon={ListChecks}

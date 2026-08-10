@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { CalendarCheck } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import { useLanguage } from '../../../lib/i18n/language-context';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
+import { getErrorMessage } from '../../../lib/errors';
 
 interface AttendanceRecord {
   id: string;
@@ -21,13 +23,17 @@ export default function StudentAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
     if (!studentId) return;
+    setLoading(true);
+    setError(null);
     api.get<AttendanceRecord[]>(`/api/attendance/student/${studentId}`)
       .then(setRecords)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load.')))
       .finally(() => setLoading(false));
-  }, [studentId]);
+  }
+
+  useEffect(() => { load(); }, [studentId]);
 
   const summary = records.reduce(
     (acc, r) => ({ ...acc, [r.status]: (acc[r.status] || 0) + 1 }),
@@ -38,7 +44,7 @@ export default function StudentAttendancePage() {
     <div>
       <div className="topbar"><h1 style={{ fontSize: '1.4rem' }}>{t('pages.attendance.title')}</h1></div>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && records.length > 0 && <p className="error-text">{error}</p>}
 
       {!loading && records.length > 0 && (
         <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
@@ -52,6 +58,8 @@ export default function StudentAttendancePage() {
       <div className="card">
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
+        ) : records.length === 0 && error ? (
+          <ErrorState description={error} onRetry={load} />
         ) : records.length === 0 ? (
           <EmptyState
             icon={CalendarCheck}

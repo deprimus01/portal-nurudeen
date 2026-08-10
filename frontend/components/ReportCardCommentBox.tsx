@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, Sparkles } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api } from '../lib/api';
+import { getErrorMessage } from '../lib/errors';
 
 export function ReportCardCommentBox({
   examId,
@@ -35,7 +36,7 @@ export function ReportCardCommentBox({
       });
       setComment(result.draft);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to generate a draft.');
+      setError(getErrorMessage(err, 'Failed to generate a draft.'));
     } finally {
       setGenerating(false);
     }
@@ -52,7 +53,7 @@ export function ReportCardCommentBox({
       await api.put('/api/ai/report-card-comment', { examId, studentId, comment });
       setSavedMessage('Comment saved.');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSaving(false);
     }

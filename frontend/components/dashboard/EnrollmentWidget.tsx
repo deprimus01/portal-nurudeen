@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Layers } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { Enrollment, Term } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
 import { BarList } from '../ui/charts/BarList';
 import { TrendLine } from '../ui/charts/TrendLine';
+import { getErrorMessage } from '../../lib/errors';
 
 const COLORS = ['var(--blue)', 'var(--navy)', 'var(--gold)', 'var(--success)', 'var(--warn)', 'var(--danger)'];
 
@@ -40,7 +41,7 @@ export function EnrollmentWidget({ href, title = 'Enrollment' }: { href: string;
         );
         setByTerm(new Map(entries));
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load enrollment data.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load enrollment data.')))
       .finally(() => setLoading(false));
   }, []);
 

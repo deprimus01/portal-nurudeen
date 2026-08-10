@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCheck, CheckCircle2, CloudOff, RefreshCw } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api } from '../lib/api';
 import { queuePendingAttendance, listPendingAttendance } from '../lib/db';
 import { flushPendingAttendance } from '../lib/attendanceSync';
 import { useOnlineStatus } from '../lib/useOnlineStatus';
 import { EmptyState } from './ui/EmptyState';
+import { getErrorMessage } from '../lib/errors';
 
 type Status = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
 
@@ -85,7 +86,7 @@ export function AttendanceEntry({
       setRoster(res.data.roster);
       setFromCache(res.fromCache);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load roster.');
+      setError(getErrorMessage(err, 'Failed to load roster.'));
       setRoster([]);
     } finally {
       setLoading(false);
@@ -137,7 +138,7 @@ export function AttendanceEntry({
         await refreshPendingCount();
         setSavedMessage('No connection - saved on this device. Will sync automatically once you\u2019re back online.');
       } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to save attendance.');
+        setError(getErrorMessage(err, 'Failed to save attendance.'));
       }
     } finally {
       setSaving(false);

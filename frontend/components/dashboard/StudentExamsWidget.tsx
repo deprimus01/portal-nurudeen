@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { FileText } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { Exam } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
+import { getErrorMessage } from '../../lib/errors';
 
 /**
  * Upcoming exams for one student's current class, built from
@@ -27,7 +28,7 @@ export function StudentExamsWidget({ studentId, href, title = 'Upcoming exams' }
     api
       .get<Exam[]>(`/api/exams/for-student/${studentId}`)
       .then(setExams)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load exams.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load exams.')))
       .finally(() => setLoading(false));
   }, [studentId]);
 

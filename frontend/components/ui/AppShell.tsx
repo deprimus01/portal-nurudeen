@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { NotificationBell } from './NotificationBell';
 import { PageTransition } from './PageTransition';
 import { CommandCenter } from './CommandCenter';
 import { useLanguage } from '../../lib/i18n/language-context';
@@ -265,6 +266,7 @@ function AppShellBody({
             <div className="shell-date">{dateStr}</div>
             <LanguageSwitcher compact />
             <ThemeToggle compact />
+            <NotificationBell />
             <div className="shell-profile-wrap">
               <button
                 type="button"

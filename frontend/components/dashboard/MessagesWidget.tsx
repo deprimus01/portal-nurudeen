@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { MessageSquare } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { Conversation } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
+import { getErrorMessage } from '../../lib/errors';
 
 /**
  * Built from /api/messages/conversations - the same endpoint the
@@ -21,7 +22,7 @@ export function MessagesWidget({ href, title = 'Messages' }: { href: string; tit
     api
       .get<Conversation[]>('/api/messages/conversations')
       .then(setConversations)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load messages.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load messages.')))
       .finally(() => setLoading(false));
   }, []);
 

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { CalendarClock, Plus } from 'lucide-react';
 import type { TimetableSlot } from '../../lib/types';
 import { EmptyState } from './EmptyState';
+import { ErrorState } from './ErrorState';
 
 export const DAYS: TimetableSlot['dayOfWeek'][] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
 export const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -36,15 +37,26 @@ interface TimetableGridProps {
   /** secondary line inside a lesson block - e.g. teacher name or class name */
   subLabel: (slot: TimetableSlot) => string | undefined | null;
   onCellClick?: (day: string, period: number) => void;
+  /** If the timetable failed to load, show a retry state instead of the empty message. */
+  error?: string | null;
+  onRetry?: () => void;
 }
 
-export function TimetableGrid({ slots, loading, emptyMessage, subLabel, onCellClick }: TimetableGridProps) {
+export function TimetableGrid({ slots, loading, emptyMessage, subLabel, onCellClick, error, onRetry }: TimetableGridProps) {
   if (loading) {
     return (
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {[...Array(5)].map((_, i) => (
           <div key={i} className="skeleton" style={{ height: 40 }} />
         ))}
+      </div>
+    );
+  }
+
+  if (slots.size === 0 && error && !onCellClick) {
+    return (
+      <div className="card">
+        <ErrorState description={error} onRetry={onRetry} />
       </div>
     );
   }

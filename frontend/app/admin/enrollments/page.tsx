@@ -2,10 +2,12 @@
 
 import { useEffect, useState, FormEvent } from 'react';
 import { UserPlus } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import type { Enrollment, Student, SchoolClass, Term } from '../../../lib/types';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 const EMPTY = { studentId: '', classId: '', termId: '' };
 
@@ -30,7 +32,7 @@ export default function EnrollmentsPage() {
       );
       setEnrollments(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load.');
+      setError(getErrorMessage(err, 'Failed to load.'));
     } finally {
       setLoading(false);
     }
@@ -53,7 +55,7 @@ export default function EnrollmentsPage() {
       setShowForm(false);
       await load(termFilter);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSubmitting(false);
     }
@@ -125,6 +127,8 @@ export default function EnrollmentsPage() {
 
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>Loading…</p>
+        ) : enrollments.length === 0 && error ? (
+          <ErrorState description={error} onRetry={() => load(termFilter)} />
         ) : enrollments.length === 0 ? (
           <EmptyState
             icon={UserPlus}

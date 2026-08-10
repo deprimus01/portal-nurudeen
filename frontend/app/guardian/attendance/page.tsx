@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { CalendarCheck, UserCircle } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import { OfflineBanner } from '../../../components/ui/OfflineBanner';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
+import { getErrorMessage } from '../../../lib/errors';
 
 interface AttendanceRecord {
   id: string;
@@ -23,7 +25,7 @@ export default function GuardianAttendancePage() {
   const [error, setError] = useState<string | null>(null);
   const [cachedAt, setCachedAt] = useState<number | undefined>();
 
-  useEffect(() => {
+  function load() {
     if (!studentId) return;
     setLoading(true);
     setError(null);
@@ -32,9 +34,11 @@ export default function GuardianAttendancePage() {
         setRecords(res.data);
         setCachedAt(res.fromCache ? res.cachedAt : undefined);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load.')))
       .finally(() => setLoading(false));
-  }, [studentId]);
+  }
+
+  useEffect(() => { load(); }, [studentId]);
 
   if (children.length === 0) {
     return (
@@ -68,7 +72,7 @@ export default function GuardianAttendancePage() {
         )}
       </div>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && records.length > 0 && <p className="error-text">{error}</p>}
       {cachedAt !== undefined && <OfflineBanner cachedAt={cachedAt} />}
 
       {!loading && records.length > 0 && (
@@ -83,6 +87,8 @@ export default function GuardianAttendancePage() {
       <div className="card">
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>Loading…</p>
+        ) : records.length === 0 && error ? (
+          <ErrorState description={error} onRetry={load} />
         ) : records.length === 0 ? (
           <EmptyState
             icon={CalendarCheck}

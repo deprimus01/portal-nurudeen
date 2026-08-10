@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Wallet } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { Invoice } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
 import { Donut } from '../ui/charts/Donut';
+import { getErrorMessage } from '../../lib/errors';
 
 function naira(kobo: number) {
   return `\u20a6${Math.round(kobo / 100).toLocaleString()}`;
@@ -30,7 +31,7 @@ export function FeesWidget({ href, title = 'Fees' }: { href: string; title?: str
     api
       .get<Invoice[]>('/api/fees/invoices')
       .then(setInvoices)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load fees.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load fees.')))
       .finally(() => setLoading(false));
   }, []);
 

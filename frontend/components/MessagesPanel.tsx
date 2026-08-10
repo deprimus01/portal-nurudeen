@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState, FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, MessageSquarePlus, Search, Send, Sparkles, X } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api } from '../lib/api';
 import { useAuth } from '../lib/auth-context';
 import type { Contact, Conversation, Message } from '../lib/types';
 import { EmptyState } from './ui/EmptyState';
 import { useLanguage } from '../lib/i18n/language-context';
+import { getErrorMessage } from '../lib/errors';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -49,7 +50,7 @@ export function MessagesPanel() {
       data.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
       setConversations(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load messages.');
+      setError(getErrorMessage(err, 'Failed to load messages.'));
     } finally {
       setLoadingList(false);
     }
@@ -60,12 +61,20 @@ export function MessagesPanel() {
       const data = await api.get<Contact[]>('/api/messages/contacts');
       setContacts(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load contacts.');
+      setError(getErrorMessage(err, 'Failed to load contacts.'));
     }
   }
 
   useEffect(() => {
     loadConversations();
+    // Deep-link support for the global search feature: a search result
+    // for a message can open straight into that thread.
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const userId = params.get('userId');
+      const name = params.get('name');
+      if (userId && name) openThread(userId, name);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -81,7 +90,7 @@ export function MessagesPanel() {
       setMessages(data);
       setConversations((prev) => prev.map((c) => (c.userId === userId ? { ...c, unreadCount: 0 } : c)));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load conversation.');
+      setError(getErrorMessage(err, 'Failed to load conversation.'));
     } finally {
       setLoadingThread(false);
     }
@@ -105,7 +114,7 @@ export function MessagesPanel() {
       setDraft('');
       await loadConversations();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to send message.');
+      setError(getErrorMessage(err, 'Failed to send message.'));
     } finally {
       setSending(false);
     }
@@ -125,7 +134,7 @@ export function MessagesPanel() {
       setShowAiPrompt(false);
       setAiInstruction('');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to generate a draft.');
+      setError(getErrorMessage(err, 'Failed to generate a draft.'));
     } finally {
       setDrafting(false);
     }

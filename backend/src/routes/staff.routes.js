@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { hashPassword, generateTempPassword } from '../lib/auth.js';
 import { logAction } from '../lib/auditLog.js';
 import { notifyNewAccount } from '../lib/notify.js';
+import { notifyNewStaff } from '../lib/notifications.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { createStaffSchema, updateStaffSchema } from '../validation/staff.schema.js';
@@ -111,6 +112,12 @@ router.post(
       action: 'staff.create',
       entityType: 'Staff',
       entityId: result.staff.id,
+    });
+
+    await notifyNewStaff({
+      actorUserId: req.user.id,
+      staffName: `${result.staff.firstName} ${result.staff.lastName}`,
+      staffRole: result.staff.role,
     });
 
     return res.status(201).json(result);

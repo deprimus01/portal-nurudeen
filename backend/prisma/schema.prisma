@@ -67,6 +67,7 @@ model User {
   sentMessages      Message[]      @relation("MessageSender")
   receivedMessages  Message[]      @relation("MessageRecipient")
   authoredAnnouncements Announcement[]
+  notifications     Notification[]
 
   @@index([role])
 }
@@ -575,6 +576,29 @@ model NotificationLog {
   sentAt        DateTime            @default(now())
 
   @@index([recipientType, recipientId])
+}
+
+// In-app notification feed — distinct from NotificationLog (which records
+// outbound SMS/email delivery attempts, not what a user sees inside the
+// portal). One row per user per event; `type` drives the icon/grouping in
+// the UI, `entityType`/`entityId` let the bell link straight to the source
+// record. Written at the moment the source event happens (see the various
+// routes' calls into lib/notifications.js), not computed on read — so a
+// notification a user has dismissed/read stays that way.
+model Notification {
+  id         String    @id @default(cuid())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  type       String    // "enrollment" | "staff" | "announcement" | "fee" | "system" | "exam" | "result" | "attendance" | "message"
+  title      String
+  body       String
+  entityType String?
+  entityId   String?
+  read       Boolean   @default(false)
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, read, createdAt])
 }
 
 // ─────────────────────────────────────────────────────────────────────────

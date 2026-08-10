@@ -4,10 +4,11 @@ import { useState, FormEvent } from 'react';
 import { KeyRound, Lock, Mail, MapPin, Pencil, Phone, ShieldCheck, User, X } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Toggle } from './Toggle';
+import { getErrorMessage } from '../../lib/errors';
 
 interface LinkedStudent {
   relationship: string;
@@ -99,7 +100,7 @@ export function SettingsView({ roleLabel }: { roleLabel: string }) {
       setContactSuccess('Contact info updated.');
       setEditingContact(false);
     } catch (err) {
-      setContactError(err instanceof ApiError ? err.message : 'Something went wrong.');
+      setContactError(getErrorMessage(err, 'Something went wrong.'));
     } finally {
       setContactSubmitting(false);
     }
@@ -120,7 +121,7 @@ export function SettingsView({ roleLabel }: { roleLabel: string }) {
       await api.patch('/api/auth/me/preferences', { [apiKey]: next });
       await refresh();
     } catch (err) {
-      setPrefError(err instanceof ApiError ? err.message : 'Could not save that — please try again.');
+      setPrefError(getErrorMessage(err, 'Could not save that — please try again.'));
     } finally {
       setPrefSavingKey(null);
     }
@@ -144,7 +145,7 @@ export function SettingsView({ roleLabel }: { roleLabel: string }) {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setPwError(err instanceof ApiError ? err.message : 'Something went wrong.');
+      setPwError(getErrorMessage(err, 'Something went wrong.'));
     } finally {
       setPwSubmitting(false);
     }

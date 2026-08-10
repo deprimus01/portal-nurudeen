@@ -8,6 +8,8 @@ import { ResultsEntry } from '../../../components/ResultsEntry';
 import type { Exam } from '../../../lib/types';
 import { useLanguage } from '../../../lib/i18n/language-context';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
+import { getErrorMessage } from '../../../lib/errors';
 
 export default function TeacherResultsPage() {
   const { t } = useLanguage();
@@ -16,10 +18,18 @@ export default function TeacherResultsPage() {
   const mySubjects = (profile?.staffSubjects || []).map((ss: any) => ss.subject);
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api.get<Exam[]>('/api/exams').then(setExams).finally(() => setLoading(false));
-  }, []);
+  function load() {
+    setLoading(true);
+    setError(null);
+    api.get<Exam[]>('/api/exams')
+      .then(setExams)
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load.')))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, []);
 
   return (
     <div>
@@ -36,6 +46,10 @@ export default function TeacherResultsPage() {
         </div>
       ) : loading ? (
         <p style={{ color: 'var(--muted)' }}>Loading…</p>
+      ) : error && exams.length === 0 ? (
+        <div className="card">
+          <ErrorState description={error} onRetry={load} />
+        </div>
       ) : exams.length === 0 ? (
         <div className="card">
           <EmptyState

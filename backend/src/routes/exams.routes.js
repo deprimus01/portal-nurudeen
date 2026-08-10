@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { logAction } from '../lib/auditLog.js';
 import { assertCanViewStudentRecord } from '../lib/guardianOwnership.js';
+import { notifyUpcomingExam } from '../lib/notifications.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { createExamSchema } from '../validation/results.schema.js';
@@ -74,6 +75,8 @@ router.post(
     const exam = await prisma.exam.create({ data: req.body, include: examInclude });
 
     await logAction({ userId: req.user.id, action: 'exam.create', entityType: 'Exam', entityId: exam.id });
+
+    await notifyUpcomingExam({ exam });
 
     return res.status(201).json(exam);
   }),

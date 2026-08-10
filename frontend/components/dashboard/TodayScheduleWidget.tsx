@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarClock } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { TimetableSlot } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
 import { colorFor } from '../ui/TimetableGrid';
+import { getErrorMessage } from '../../lib/errors';
 
 const DAY_NAMES = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const;
 
@@ -39,7 +40,7 @@ export function TodayScheduleWidget({
         : api.get<TimetableSlot[]>(`/api/timetable/for-student/${source.studentId}`);
     req
       .then(setSlots)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load timetable.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load timetable.')))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source.kind, source.kind === 'student' ? source.studentId : null]);

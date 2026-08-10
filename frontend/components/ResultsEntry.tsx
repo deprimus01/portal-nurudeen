@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2 } from 'lucide-react';import { api, ApiError } from '../lib/api';
+import { CheckCircle2 } from 'lucide-react';import { api } from '../lib/api';
 import { EmptyState } from './ui/EmptyState';
+import { getErrorMessage } from '../lib/errors';
 
 interface RosterEntry {
   studentId: string;
@@ -44,7 +45,7 @@ export function ResultsEntry({
       );
       setRoster(data.roster);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load roster.');
+      setError(getErrorMessage(err, 'Failed to load roster.'));
       setRoster([]);
     } finally {
       setLoading(false);
@@ -85,7 +86,7 @@ export function ResultsEntry({
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 850);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save scores.');
+      setError(getErrorMessage(err, 'Failed to save scores.'));
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { sendMessageSchema } from '../validation/messaging.schema.js';
 import { notifyNewMessage } from '../lib/notify.js';
+import { notifyNewMessage as notifyNewMessageInApp } from '../lib/notifications.js';
 import { getContacts } from '../lib/messageContacts.js';
 
 const router = Router();
@@ -136,6 +137,7 @@ router.post(
       .then(([senderProfile, recipientUser]) => {
         if (!recipientUser || !senderProfile) return;
         const senderName = `${senderProfile.firstName} ${senderProfile.lastName}`;
+        notifyNewMessageInApp({ recipientUserId: recipientUserId, senderName, preview: body });
         return notifyNewMessage({ recipientUser, senderName, body });
       })
       .catch(() => {});

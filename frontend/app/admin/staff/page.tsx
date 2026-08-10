@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
-import { Briefcase } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { Briefcase, CheckCircle2, KeyRound, Pencil, Search } from 'lucide-react';
+import { api } from '../../../lib/api';
 import type { Staff, Subject, SchoolClass } from '../../../lib/types';
-import { ForceResetPasswordButton } from '../../../components/ui/ForceResetPasswordButton';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
+import { DataTable, DataTableColumn } from '../../../components/ui/table/DataTable';
+import type { ActionMenuItem } from '../../../components/ui/table/ActionMenu';
 
 const ROLE_OPTIONS = ['TEACHER', 'ADMIN', 'TEACHER_ADMIN'];
 
@@ -26,14 +29,20 @@ export default function StaffPage() {
   const [classIds, setClassIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [lastCredential, setLastCredential] = useState<{ email: string; tempPassword: string } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [credentialsBanner, setCredentialsBanner] = useState<{ heading: string; email: string; tempPassword: string } | null>(null);
+  const [search, setSearch] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    // Deep-link support for the global search feature.
+    return new URLSearchParams(window.location.search).get('q') || '';
+  });
 
   async function load() {
     setLoading(true);
     try {
       setStaff(await api.get<Staff[]>('/api/staff'));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load.');
+      setError(getErrorMessage(err, 'Failed to load.'));
     } finally {
       setLoading(false);
     }
@@ -54,21 +63,64 @@ export default function StaffPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const result = await api.post<{ staff: Staff; tempPassword: string }>('/api/staff', {
-        ...form,
-        subjectIds,
-        classIds,
-      });
-      setForm(EMPTY);
-      setSubjectIds([]);
-      setClassIds([]);
-      setShowForm(false);
-      setLastCredential({ email: form.email, tempPassword: result.tempPassword });
+      if (editingId) {
+        await api.patch(`/api/staff/${editingId}`, { ...form, subjectIds, classIds });
+      } else {
+        const result = await api.post<{ staff: Staff; tempPassword: string }>('/api/staff', {
+          ...form,
+          subjectIds,
+          classIds,
+        });
+        setCredentialsBanner({ heading: 'Staff account created', email: form.email, tempPassword: result.tempPassword });
+      }
+      closeForm();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function closeForm() {
+    setForm(EMPTY);
+    setSubjectIds([]);
+    setClassIds([]);
+    setEditingId(null);
+    setShowForm(false);
+    setError(null);
+  }
+
+  function startEdit(s: any) {
+    setForm({
+      employeeId: s.employeeId || '',
+      firstName: s.firstName || '',
+      lastName: s.lastName || '',
+      phone: s.phone || '',
+      email: s.email || '',
+      role: s.role || 'TEACHER',
+    });
+    setSubjectIds(s.staffSubjects?.map((ss: any) => ss.subject.id) || []);
+    setClassIds(s.staffClasses?.map((sc: any) => sc.class.id) || []);
+    setEditingId(s.id);
+    setError(null);
+    setShowForm(true);
+  }
+
+  async function handleForceReset(userId: string, displayName: string) {
+    if (
+      !confirm(
+        `Reset ${displayName}'s password? Their current password will stop working immediately, and they'll need the new temporary password to log in.`,
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    try {
+      const result = await api.post<{ email: string; tempPassword: string }>(`/api/users/${userId}/force-reset-password`, {});
+      setCredentialsBanner({ heading: 'Password reset', email: result.email, tempPassword: result.tempPassword });
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to reset password.'));
     }
   }
 
@@ -76,26 +128,29 @@ export default function StaffPage() {
     <div>
       <div className="topbar">
         <h1 style={{ fontSize: '1.4rem' }}>{t('pages.staff.title')}</h1>
-        <button className="btn" onClick={() => setShowForm((v) => !v)}>
+        <button className="btn" onClick={() => (showForm ? closeForm() : setShowForm(true))}>
           {showForm ? t('common.cancel') : t('pages.staff.addButton')}
         </button>
       </div>
 
-      {lastCredential && (
+      {credentialsBanner && (
         <div className="card" style={{ marginBottom: '1.5rem', borderColor: 'var(--success)' }}>
-          <strong>Staff account created - credentials emailed automatically:</strong>
+          <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <CheckCircle2 size={16} color="var(--success)" /> {credentialsBanner.heading} - credentials emailed automatically:
+          </strong>
           <p style={{ fontSize: '0.9rem' }}>
-            {lastCredential.email} - temporary password: <code>{lastCredential.tempPassword}</code>
+            {credentialsBanner.email} - temporary password: <code>{credentialsBanner.tempPassword}</code>
           </p>
           <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
             Shown here too in case the email doesn&apos;t land. Won&apos;t be shown again.
           </p>
-          <button className="btn btn-outline" onClick={() => setLastCredential(null)}>Dismiss</button>
+          <button className="btn btn-outline" onClick={() => setCredentialsBanner(null)}>Dismiss</button>
         </div>
       )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card" style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>{editingId ? 'Edit staff details' : 'Staff details'}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.8rem' }}>
             <div className="field" style={{ marginBottom: 0 }}>
               <label htmlFor="employeeId">{t('fields.employeeId')}</label>
@@ -151,48 +206,102 @@ export default function StaffPage() {
 
           {error && <p className="error-text">{error}</p>}
           <button className="btn" type="submit" disabled={submitting} style={{ marginTop: '1.2rem' }}>
-            {submitting ? t('common.saving') : t('common.save')}
+            {submitting ? t('common.saving') : editingId ? 'Save changes' : t('common.save')}
           </button>
         </form>
       )}
 
-      <div className="card">
-        {loading ? (
-          <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
-        ) : staff.length === 0 ? (
-          <EmptyState
-            icon={Briefcase}
-            title="No staff yet"
-            description="Add teachers and admins to assign them to classes and subjects."
-            tone="navy"
-            action={
-              <button className="btn" onClick={() => setShowForm(true)}>
-                {t('pages.staff.addButton')}
-              </button>
+      {staff.length === 0 && error && !loading ? (
+        <div className="card">
+          <ErrorState description={error} onRetry={load} />
+        </div>
+      ) : (
+        <DataTable<any>
+          rows={staff}
+          getRowId={(s) => s.id}
+          loading={loading}
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchKeys={(s: any) => `${s.firstName} ${s.lastName} ${s.employeeId} ${s.role}`}
+          searchPlaceholder="Search by name, employee ID or role…"
+          emptyState={
+            <EmptyState
+              icon={staff.length === 0 ? Briefcase : Search}
+              title={staff.length === 0 ? 'No staff yet' : 'No matching staff'}
+              description={
+                staff.length === 0
+                  ? 'Add teachers and admins to assign them to classes and subjects.'
+                  : `No staff match "${search}".`
+              }
+              tone="navy"
+              action={
+                staff.length === 0 ? (
+                  <button className="btn" onClick={() => setShowForm(true)}>
+                    {t('pages.staff.addButton')}
+                  </button>
+                ) : undefined
+              }
+            />
+          }
+          columns={[
+            {
+              key: 'name',
+              label: t('fields.name'),
+              cardRole: 'title',
+              sortAccessor: (s: any) => `${s.firstName} ${s.lastName}`,
+              render: (s: any) => (
+                <span className="name-cell">
+                  <span className="shell-avatar" style={{ width: 30, height: 30, fontSize: 11 }}>
+                    {`${s.firstName?.[0] || ''}${s.lastName?.[0] || ''}`.toUpperCase()}
+                  </span>
+                  <span style={{ fontWeight: 600 }}>{s.firstName} {s.lastName}</span>
+                </span>
+              ),
+            },
+            {
+              key: 'employeeId',
+              label: t('fields.employeeId'),
+              cardRole: 'subtitle',
+              cardLabel: '',
+              sortAccessor: (s: any) => s.employeeId,
+              render: (s: any) => <span className="mono" style={{ color: 'var(--muted)' }}>{s.employeeId}</span>,
+            },
+            {
+              key: 'role',
+              label: t('fields.role'),
+              sortAccessor: (s: any) => s.role,
+              render: (s: any) => <span className="badge badge-gold">{s.role.replace('_', ' + ')}</span>,
+            },
+            {
+              key: 'subjects',
+              label: t('nav.subjects'),
+              render: (s: any) => s.staffSubjects.map((ss: any) => ss.subject.name).join(', ') || '—',
+            },
+            {
+              key: 'classes',
+              label: t('nav.classes'),
+              render: (s: any) => s.staffClasses.map((sc: any) => sc.class.name).join(', ') || '—',
+            },
+            {
+              key: 'portal',
+              label: 'Portal account',
+              cardRole: 'hidden',
+              render: (s: any) => <span className={`badge ${s.user ? 'badge-success' : ''}`}>{s.user ? 'Active' : 'None'}</span>,
+            },
+          ] as DataTableColumn<any>[]}
+          actions={(s: any) => {
+            const items: ActionMenuItem[] = [{ label: 'Edit staff', icon: Pencil, onClick: () => startEdit(s) }];
+            if (s.user) {
+              items.push({
+                label: 'Force reset password',
+                icon: KeyRound,
+                onClick: () => handleForceReset(s.user.id, `${s.firstName} ${s.lastName}`),
+              });
             }
-          />
-        ) : (
-          <div className="table-wrap">
-          <table>
-            <thead><tr><th>{t('fields.employeeId')}</th><th>{t('fields.name')}</th><th>{t('fields.role')}</th><th>{t('nav.subjects')}</th><th>{t('nav.classes')}</th><th>Portal account</th></tr></thead>
-            <tbody>
-              {staff.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.employeeId}</td>
-                  <td>{s.firstName} {s.lastName}</td>
-                  <td>{s.role}</td>
-                  <td>{s.staffSubjects.map((ss) => ss.subject.name).join(', ') || '—'}</td>
-                  <td>{s.staffClasses.map((sc) => sc.class.name).join(', ') || '—'}</td>
-                  <td>
-                    <ForceResetPasswordButton user={s.user} displayName={`${s.firstName} ${s.lastName}`} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        )}
-      </div>
+            return items;
+          }}
+        />
+      )}
     </div>
   );
 }

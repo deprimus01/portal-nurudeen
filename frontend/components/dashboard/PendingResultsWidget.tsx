@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ClipboardList } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { Exam, Subject } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
+import { getErrorMessage } from '../../lib/errors';
 
 interface RosterEntry {
   studentId: string;
@@ -44,7 +45,7 @@ export function PendingResultsWidget({
     api
       .get<{ roster: RosterEntry[] }>(`/api/results/roster?examId=${examId}&subjectId=${subjectId}`)
       .then((data) => setRoster(data.roster))
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load roster.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load roster.')))
       .finally(() => setLoading(false));
   }, [examId, subjectId]);
 

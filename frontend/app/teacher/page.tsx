@@ -17,6 +17,7 @@ import { PendingResultsWidget } from '../../components/dashboard/PendingResultsW
 import { TodayScheduleWidget } from '../../components/dashboard/TodayScheduleWidget';
 import { AttentionWidget } from '../../components/dashboard/AttentionWidget';
 import { RecentAnnouncementsWidget } from '../../components/dashboard/RecentAnnouncementsWidget';
+import { ActivityFeedWidget } from '../../components/dashboard/ActivityFeedWidget';
 
 export default function TeacherDashboardPage() {
   const { t } = useLanguage();
@@ -89,6 +90,8 @@ export default function TeacherDashboardPage() {
         <AttentionWidget href="/teacher/flags" />
         <RecentAnnouncementsWidget href="/teacher/announcements" />
       </div>
+
+      <ActivityFeedWidget />
 
       <QuickActionsHub title={t('common.actions')} primary={buildTeacherActions()} />
     </div>

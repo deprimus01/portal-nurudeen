@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { CheckSquare } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import { DashboardWidget, RangeTabs } from '../ui/DashboardWidget';
 import { EmptyState } from '../ui/EmptyState';
 import { Donut } from '../ui/charts/Donut';
 import { TrendLine } from '../ui/charts/TrendLine';
+import { getErrorMessage } from '../../lib/errors';
 
 interface AttendanceRecord {
   id: string;
@@ -42,7 +43,7 @@ export function AttendanceWidget({ studentId, href, title = 'Attendance' }: { st
     api
       .get<AttendanceRecord[]>(`/api/attendance/student/${studentId}`)
       .then(setRecords)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load attendance.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load attendance.')))
       .finally(() => setLoading(false));
   }, [studentId]);
 

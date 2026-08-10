@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { AlertTriangle, TrendingDown } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { Flag, FlagsResponse } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
+import { getErrorMessage } from '../../lib/errors';
 
 /**
  * Compact dashboard version of FlagsPanel - same /api/ai/flags endpoint
@@ -21,7 +22,7 @@ export function AttentionWidget({ href, title = 'Students requiring attention' }
     api
       .get<FlagsResponse>('/api/ai/flags')
       .then((res) => setFlags(res.flags))
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load flags.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load flags.')))
       .finally(() => setLoading(false));
   }, []);
 

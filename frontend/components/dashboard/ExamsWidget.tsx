@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { FileText } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { Exam } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
 import { Donut } from '../ui/charts/Donut';
+import { getErrorMessage } from '../../lib/errors';
 
 /**
  * Exam overview built from /api/exams (already used on the Exams page).
@@ -25,7 +26,7 @@ export function ExamsWidget({ href, title = 'Exams' }: { href: string; title?: s
     api
       .get<Exam[]>('/api/exams')
       .then(setExams)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load exams.'))
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load exams.')))
       .finally(() => setLoading(false));
   }, []);
 

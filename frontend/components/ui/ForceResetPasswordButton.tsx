@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { KeyRound } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import type { PortalUserSummary } from '../../lib/types';
+import { getErrorMessage } from '../../lib/errors';
 
 interface ForceResetPasswordButtonProps {
   user?: PortalUserSummary | null;
@@ -43,7 +44,7 @@ export function ForceResetPasswordButton({ user, displayName }: ForceResetPasswo
       );
       setResult(res);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to reset password.');
+      setError(getErrorMessage(err, 'Failed to reset password.'));
     } finally {
       setBusy(false);
     }

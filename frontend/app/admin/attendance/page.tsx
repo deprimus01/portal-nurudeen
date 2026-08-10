@@ -7,18 +7,26 @@ import { api } from '../../../lib/api';
 import { AttendanceEntry } from '../../../components/AttendanceEntry';
 import type { SchoolClass } from '../../../lib/types';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 export default function AdminAttendancePage() {
   const { t } = useLanguage();
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     api.get<SchoolClass[]>('/api/classes')
       .then(setClasses)
+      .catch((err) => setError(getErrorMessage(err, 'Failed to load.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   return (
     <div>
@@ -28,6 +36,10 @@ export default function AdminAttendancePage() {
 
       {loading ? (
         <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
+      ) : error && classes.length === 0 ? (
+        <div className="card">
+          <ErrorState description={error} onRetry={load} />
+        </div>
       ) : classes.length === 0 ? (
         <div className="card">
           <EmptyState

@@ -2,10 +2,12 @@
 
 import { useEffect, useState, FormEvent } from 'react';
 import { CalendarRange, Plus } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import type { AcademicSession, Term } from '../../../lib/types';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { getErrorMessage } from '../../../lib/errors';
 
 export default function AcademicPage() {
   const { t } = useLanguage();
@@ -30,7 +32,7 @@ export default function AcademicPage() {
       setSessions(s);
       setTerms(t);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load.');
+      setError(getErrorMessage(err, 'Failed to load.'));
     } finally {
       setLoading(false);
     }
@@ -48,7 +50,7 @@ export default function AcademicPage() {
       setShowSessionForm(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSubmitting(false);
     }
@@ -64,7 +66,7 @@ export default function AcademicPage() {
       setShowTermForm(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
+      setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
       setSubmitting(false);
     }
@@ -93,9 +95,12 @@ export default function AcademicPage() {
               Current session
             </label>
             <button className="btn" type="submit" disabled={submitting}>Save</button>
+            {error && sessions.length > 0 && <p className="error-text">{error}</p>}
           </form>
         )}
-        {!loading && sessions.length === 0 ? (
+        {!loading && sessions.length === 0 && error ? (
+          <ErrorState description={error} onRetry={load} />
+        ) : !loading && sessions.length === 0 ? (
           <EmptyState
             icon={CalendarRange}
             title="No academic sessions yet"
@@ -147,10 +152,12 @@ export default function AcademicPage() {
               Current term
             </label>
             <button className="btn" type="submit" disabled={submitting}>Save</button>
+            {error && terms.length > 0 && <p className="error-text">{error}</p>}
           </form>
         )}
-        {error && <p className="error-text">{error}</p>}
-        {!loading && terms.length === 0 ? (
+        {!loading && terms.length === 0 && error ? (
+          <ErrorState description={error} onRetry={load} />
+        ) : !loading && terms.length === 0 ? (
           <EmptyState
             icon={CalendarRange}
             title="No terms yet"
