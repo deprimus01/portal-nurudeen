@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2 } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { CheckCircle2 } from 'lucide-react';import { api, ApiError } from '../lib/api';
 import { EmptyState } from './ui/EmptyState';
 
 interface RosterEntry {
@@ -32,6 +31,7 @@ export function ResultsEntry({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
 
   async function loadRoster() {
     if (!examId || !subjectId) return;
@@ -82,6 +82,8 @@ export function ResultsEntry({
         records: toSave.map((r) => ({ studentId: r.studentId, score: r.score })),
       });
       setSavedMessage('Scores saved.');
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 850);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save scores.');
     } finally {
@@ -163,8 +165,20 @@ export function ResultsEntry({
                 </tbody>
               </table>
               <div style={{ padding: '1rem 1.25rem' }}>
-                <button className="btn" onClick={handleSave} disabled={saving}>
-                  {saving ? <span className="login-spinner" aria-hidden="true" /> : 'Save scores'}
+                <button
+                  className={`btn${justSaved ? ' btn-flash-success' : ''}`}
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <span className="login-spinner" aria-hidden="true" />
+                  ) : justSaved ? (
+                    <>
+                      <CheckCircle2 size={15} /> Saved
+                    </>
+                  ) : (
+                    'Save scores'
+                  )}
                 </button>
               </div>
             </>

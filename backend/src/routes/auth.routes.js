@@ -6,7 +6,7 @@ import { logAction } from '../lib/auditLog.js';
 import { requireAuth } from '../middleware/auth.js';
 import { loginRateLimiter, passwordResetRateLimiter } from '../middleware/rateLimit.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
-import { loginSchema, resetPasswordSchema } from '../validation/auth.schema.js';
+import { loginSchema, resetPasswordSchema, updateContactSchema, updatePreferencesSchema } from '../validation/auth.schema.js';
 
 const router = Router();
 
@@ -88,6 +88,12 @@ router.get(
       role: user.role,
       mustResetPassword: user.mustResetPassword,
       profile,
+      notificationPreferences: {
+        emailAnnouncements: user.notifyEmailAnnouncements,
+        smsAnnouncements: user.notifySmsAnnouncements,
+        emailMessages: user.notifyEmailMessages,
+        smsMessages: user.notifySmsMessages,
+      },
     });
   }),
 );
@@ -116,6 +122,74 @@ router.post(
     await logAction({ userId: user.id, action: 'auth.password_reset', entityType: 'User', entityId: user.id });
 
     return res.json({ ok: true });
+  }),
+);
+
+// Self-service contact info — phone/email for staff and guardians (the
+// role-managed records), address for guardians only. Students have no
+// editable contact fields on their own record (Student has no phone/
+// email), so this route 404s for them rather than silently no-opping.
+router.patch(
+  '/me/contact',
+  requireAuth,
+  validateBody(updateContactSchema),
+  asyncHandler(async (req, res) => {
+    const user = req.user;
+    const { phone, email, address } = req.body;
+
+    let updated;
+    if (user.role === 'ADMIN' || user.role === 'TEACHER') {
+      if (!user.staffId) return res.status(404).json({ error: 'No staff record on this account.' });
+      updated = await prisma.staff.update({
+        where: { id: user.staffId },
+        data: { ...(phone !== undefined && { phone }), ...(email !== undefined && { email }) },
+      });
+    } else if (user.role === 'GUARDIAN') {
+      if (!user.guardianId) return res.status(404).json({ error: 'No guardian record on this account.' });
+      updated = await prisma.guardian.update({
+        where: { id: user.guardianId },
+        data: {
+          ...(phone !== undefined && { phone }),
+          ...(email !== undefined && { email }),
+          ...(address !== undefined && { address }),
+        },
+      });
+    } else {
+      return res.status(404).json({ error: 'There is no editable contact info for this account type.' });
+    }
+
+    await logAction({ userId: user.id, action: 'auth.contact_updated', entityType: 'User', entityId: user.id });
+
+    return res.json(updated);
+  }),
+);
+
+router.patch(
+  '/me/preferences',
+  requireAuth,
+  validateBody(updatePreferencesSchema),
+  asyncHandler(async (req, res) => {
+    const user = req.user;
+    const { notifyEmailAnnouncements, notifySmsAnnouncements, notifyEmailMessages, notifySmsMessages } = req.body;
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        ...(notifyEmailAnnouncements !== undefined && { notifyEmailAnnouncements }),
+        ...(notifySmsAnnouncements !== undefined && { notifySmsAnnouncements }),
+        ...(notifyEmailMessages !== undefined && { notifyEmailMessages }),
+        ...(notifySmsMessages !== undefined && { notifySmsMessages }),
+      },
+    });
+
+    await logAction({ userId: user.id, action: 'auth.preferences_updated', entityType: 'User', entityId: user.id });
+
+    return res.json({
+      emailAnnouncements: updated.notifyEmailAnnouncements,
+      smsAnnouncements: updated.notifySmsAnnouncements,
+      emailMessages: updated.notifyEmailMessages,
+      smsMessages: updated.notifySmsMessages,
+    });
   }),
 );
 

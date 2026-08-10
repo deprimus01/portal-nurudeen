@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import { UserPlus } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import type { Enrollment, Student, SchoolClass, Term } from '../../../lib/types';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 const EMPTY = { studentId: '', classId: '', termId: '' };
@@ -124,7 +126,17 @@ export default function EnrollmentsPage() {
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>Loading…</p>
         ) : enrollments.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>No enrollments yet.</p>
+          <EmptyState
+            icon={UserPlus}
+            title="No enrollments yet"
+            description="Enroll students into classes to begin tracking their academic activity."
+            tone="blue"
+            action={
+              <button className="btn" onClick={() => setShowForm(true)}>
+                <UserPlus size={15} /> Create Enrollment
+              </button>
+            }
+          />
         ) : (
           <div className="table-wrap">
           <table>

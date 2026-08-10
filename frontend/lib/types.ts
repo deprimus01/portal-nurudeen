@@ -1,11 +1,19 @@
 export type UserRole = 'ADMIN' | 'TEACHER' | 'GUARDIAN' | 'STUDENT';
 
+export interface NotificationPreferences {
+  emailAnnouncements: boolean;
+  smsAnnouncements: boolean;
+  emailMessages: boolean;
+  smsMessages: boolean;
+}
+
 export interface SessionUser {
   id: string;
   email: string;
   role: UserRole;
   mustResetPassword: boolean;
   profile?: Record<string, unknown> | null;
+  notificationPreferences?: NotificationPreferences;
 }
 
 export interface PortalUserSummary {

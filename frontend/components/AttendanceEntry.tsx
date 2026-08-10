@@ -46,6 +46,7 @@ export function AttendanceEntry({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
   const [fromCache, setFromCache] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const online = useOnlineStatus();
@@ -119,9 +120,12 @@ export function AttendanceEntry({
 
     setSaving(true);
     setError(null);
+    setSavedMessage(null);
     try {
       await api.post('/api/attendance', payload);
       setSavedMessage('Attendance saved.');
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 850);
     } catch (err) {
       // A network failure (device genuinely offline) - queue it instead
       // of losing a completed roster the teacher just filled in by hand.
@@ -230,7 +234,7 @@ export function AttendanceEntry({
                           <button
                             key={opt.value}
                             type="button"
-                            className={`badge ${row.status === opt.value ? opt.badgeClass : ''}`}
+                            className={`badge badge-btn ${row.status === opt.value ? opt.badgeClass : ''}`}
                             style={{
                               border: '1px solid var(--border)',
                               cursor: 'pointer',
@@ -249,8 +253,20 @@ export function AttendanceEntry({
               </tbody>
             </table>
             <div style={{ padding: '1rem 1.25rem' }}>
-              <button className="btn" onClick={handleSave} disabled={saving}>
-                {saving ? <span className="login-spinner" aria-hidden="true" /> : 'Save attendance'}
+              <button
+                className={`btn${justSaved ? ' btn-flash-success' : ''}`}
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <span className="login-spinner" aria-hidden="true" />
+                ) : justSaved ? (
+                  <>
+                    <CheckCircle2 size={15} /> Saved
+                  </>
+                ) : (
+                  'Save attendance'
+                )}
               </button>
             </div>
           </>

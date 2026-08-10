@@ -1,5 +1,6 @@
 'use client';
 
+import { BookOpen } from 'lucide-react';
 import { SimpleCrud } from '../../../components/SimpleCrud';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
@@ -19,6 +20,10 @@ export default function SubjectsPage() {
         { key: 'code', label: 'Code' },
       ]}
       emptyDefaults={{ name: '', code: '' }}
+      emptyIcon={BookOpen}
+      emptyTitle="No subjects yet"
+      emptyDescription="Add subjects like Mathematics or English to assign them to classes and exams."
+      emptyTone="green"
     />
   );
 }

@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CalendarCheck } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
 import { api, ApiError } from '../../../lib/api';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 interface AttendanceRecord {
   id: string;
@@ -51,7 +53,12 @@ export default function StudentAttendancePage() {
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
         ) : records.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>{t('common.noResults')}</p>
+          <EmptyState
+            icon={CalendarCheck}
+            title="No attendance recorded yet"
+            description="Attendance marked by your teacher will appear here."
+            tone="green"
+          />
         ) : (
           <div className="table-wrap">
           <table>

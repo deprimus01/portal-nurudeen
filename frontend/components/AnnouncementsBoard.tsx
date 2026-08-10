@@ -197,7 +197,23 @@ export function AnnouncementsBoard({ role }: AnnouncementsBoardProps) {
         </div>
       ) : announcements.length === 0 ? (
         <div className="card">
-          <EmptyState icon={Megaphone} title="No announcements yet" />
+          <EmptyState
+            icon={Megaphone}
+            title="No announcements yet"
+            description={
+              readOnly
+                ? "Notices from the school will show up here."
+                : 'Post a notice for the whole school or a specific class.'
+            }
+            tone="gold"
+            action={
+              !readOnly ? (
+                <button className="btn" onClick={() => setShowForm(true)}>
+                  <Plus size={15} /> New Announcement
+                </button>
+              ) : undefined
+            }
+          />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>

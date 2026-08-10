@@ -28,6 +28,7 @@ import {
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { AppShell, NavGroup } from '../../components/ui/AppShell';
+import { buildAdminActions, buildAdminSecondaryActions } from '../../lib/commandActions';
 
 const MOBILE_PRIMARY = ['/admin', '/admin/students', '/admin/attendance', '/admin/messages'];
 
@@ -83,6 +84,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     [t],
   );
 
+  const commandActions = useMemo(() => buildAdminActions(), []);
+  const commandSecondaryActions = useMemo(() => buildAdminSecondaryActions(), []);
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -124,6 +128,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       onLogout={logout}
       mobilePrimaryHrefs={MOBILE_PRIMARY}
       settingsHref="/admin/settings"
+      commandActions={commandActions}
+      commandSecondaryActions={commandSecondaryActions}
     >
       {children}
     </AppShell>

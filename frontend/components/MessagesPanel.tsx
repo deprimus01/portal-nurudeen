@@ -170,7 +170,12 @@ export function MessagesPanel() {
           <div className="conv-scroll">
             {showContacts ? (
               contacts.length === 0 ? (
-                <EmptyState icon={MessageSquarePlus} title="No contacts available" />
+                <EmptyState
+                  icon={MessageSquarePlus}
+                  title="No contacts available"
+                  description="Staff and parents you can message will appear here."
+                  compact
+                />
               ) : (
                 contacts.map((c) => (
                   <button key={c.userId} onClick={() => openThread(c.userId, c.name)} className="conv-item">
@@ -194,7 +199,19 @@ export function MessagesPanel() {
               <EmptyState
                 icon={MessageSquarePlus}
                 title="No conversations yet"
-                description='Start one with "New Message".'
+                description="Your messages will appear here when you start communicating."
+                compact
+                action={
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      setShowContacts(true);
+                      if (!contacts.length) loadContacts();
+                    }}
+                  >
+                    <MessageSquarePlus size={15} /> {t('pages.messages.newButton')}
+                  </button>
+                }
               />
             ) : (
               filteredConversations.map((c) => (

@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import { CalendarRange, Plus } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import type { AcademicSession, Term } from '../../../lib/types';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 export default function AcademicPage() {
@@ -93,6 +95,19 @@ export default function AcademicPage() {
             <button className="btn" type="submit" disabled={submitting}>Save</button>
           </form>
         )}
+        {!loading && sessions.length === 0 ? (
+          <EmptyState
+            icon={CalendarRange}
+            title="No academic sessions yet"
+            description="Create a session (e.g. 2025/2026) to start organizing terms and enrollments."
+            tone="navy"
+            action={
+              <button className="btn" onClick={() => setShowSessionForm(true)}>
+                <Plus size={15} /> Add Session
+              </button>
+            }
+          />
+        ) : (
         <div className="table-wrap">
         <table>
           <thead><tr><th>Name</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
@@ -108,6 +123,7 @@ export default function AcademicPage() {
           </tbody>
         </table>
         </div>
+        )}
       </div>
 
       <div className="card">
@@ -134,6 +150,25 @@ export default function AcademicPage() {
           </form>
         )}
         {error && <p className="error-text">{error}</p>}
+        {!loading && terms.length === 0 ? (
+          <EmptyState
+            icon={CalendarRange}
+            title="No terms yet"
+            description={
+              sessions.length === 0
+                ? 'Create an academic session first, then add its terms here.'
+                : 'Add a term (e.g. First Term) to a session to start scheduling exams and fees.'
+            }
+            tone="navy"
+            action={
+              sessions.length > 0 ? (
+                <button className="btn" onClick={() => setShowTermForm(true)}>
+                  <Plus size={15} /> Add Term
+                </button>
+              ) : undefined
+            }
+          />
+        ) : (
         <div className="table-wrap">
         <table>
           <thead><tr><th>Term</th><th>Session</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
@@ -150,6 +185,7 @@ export default function AcademicPage() {
           </tbody>
         </table>
         </div>
+        )}
       </div>
     </div>
   );

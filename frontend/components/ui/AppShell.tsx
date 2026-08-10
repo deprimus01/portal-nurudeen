@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChevronDown,
+  Command,
   LogOut,
   LucideIcon,
   Menu,
@@ -18,7 +19,10 @@ import {
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { PageTransition } from './PageTransition';
+import { CommandCenter } from './CommandCenter';
 import { useLanguage } from '../../lib/i18n/language-context';
+import { CommandCenterProvider, useCommandCenter } from '../../lib/command-center-context';
+import type { CommandAction } from '../../lib/commandActions';
 
 export interface NavItem {
   href: string;
@@ -42,6 +46,9 @@ interface AppShellProps {
   mobilePrimaryHrefs?: string[];
   /** where the profile-menu "Settings" item links to */
   settingsHref?: string;
+  /** powers the ⌘K command center — omit to leave the palette disabled */
+  commandActions?: CommandAction[];
+  commandSecondaryActions?: CommandAction[];
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -53,7 +60,15 @@ function initialsFor(name: string) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export function AppShell({
+export function AppShell(props: AppShellProps) {
+  return (
+    <CommandCenterProvider>
+      <AppShellBody {...props} />
+    </CommandCenterProvider>
+  );
+}
+
+function AppShellBody({
   navGroups,
   roleLabel,
   userName,
@@ -62,9 +77,12 @@ export function AppShell({
   children,
   mobilePrimaryHrefs,
   settingsHref,
+  commandActions = [],
+  commandSecondaryActions = [],
 }: AppShellProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { isOpen: cmdkOpen, open: openCmdk, close: closeCmdk } = useCommandCenter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -81,6 +99,25 @@ export function AppShell({
     setProfileOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (commandActions.length === 0) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      const isTypingTarget =
+        e.target instanceof HTMLElement && ['INPUT', 'TEXTAREA'].includes(e.target.tagName);
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openCmdk();
+        return;
+      }
+      if (e.key === '/' && !isTypingTarget) {
+        e.preventDefault();
+        openCmdk();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [commandActions.length, openCmdk]);
+
   const allItems = useMemo(() => navGroups.flatMap((g) => g.items), [navGroups]);
   const activeItem = allItems.find((item) => item.href === pathname);
 
@@ -95,7 +132,7 @@ export function AppShell({
 
   const initials = initialsFor(userName);
 
-  const sidebarContent = (
+  const renderSidebarContent = (variant: 'desktop' | 'mobile') => (
     <>
       <div className="shell-sidebar-head">
         <div className="shell-brand">
@@ -131,6 +168,13 @@ export function AppShell({
                   className={`shell-nav-item${active ? ' active' : ''}`}
                   title={collapsed ? item.label : undefined}
                 >
+                  {active && (
+                    <motion.span
+                      className="shell-nav-active-bar"
+                      layoutId={`shellNavActiveBar-${variant}`}
+                      transition={{ duration: 0.28, ease: EASE }}
+                    />
+                  )}
                   <span className="shell-nav-icon">
                     <Icon size={16} strokeWidth={2} />
                   </span>
@@ -147,7 +191,7 @@ export function AppShell({
   return (
     <div className="app-shell">
       {/* Desktop floating sidebar */}
-      <aside className={`shell-sidebar${collapsed ? ' collapsed' : ''}`}>{sidebarContent}</aside>
+      <aside className={`shell-sidebar${collapsed ? ' collapsed' : ''}`}>{renderSidebarContent('desktop')}</aside>
 
       {/* Mobile drawer */}
       <AnimatePresence>
@@ -170,7 +214,7 @@ export function AppShell({
               <button className="shell-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close menu">
                 <X size={18} />
               </button>
-              {sidebarContent}
+              {renderSidebarContent('mobile')}
             </motion.aside>
           </>
         )}
@@ -193,12 +237,31 @@ export function AppShell({
             <b>{activeItem?.label ?? roleLabel}</b>
           </div>
 
-          <div className="shell-search">
-            <Search size={15} />
-            <span>{t('common.search')}</span>
-          </div>
+          {commandActions.length > 0 ? (
+            <button type="button" className="shell-search" onClick={openCmdk}>
+              <Search size={15} />
+              <span>{t('common.search')}</span>
+              <kbd className="shell-search-kbd">⌘K</kbd>
+            </button>
+          ) : (
+            <div className="shell-search">
+              <Search size={15} />
+              <span>{t('common.search')}</span>
+            </div>
+          )}
 
           <div className="shell-topbar-actions">
+            {commandActions.length > 0 && (
+              <button
+                type="button"
+                className="shell-cmdk-btn"
+                onClick={openCmdk}
+                aria-label="Open command center"
+                title="Command center (⌘K)"
+              >
+                <Command size={16} />
+              </button>
+            )}
             <div className="shell-date">{dateStr}</div>
             <LanguageSwitcher compact />
             <ThemeToggle compact />
@@ -278,6 +341,16 @@ export function AppShell({
           </nav>
         )}
       </div>
+
+      {commandActions.length > 0 && (
+        <CommandCenter
+          isOpen={cmdkOpen}
+          onClose={closeCmdk}
+          actions={commandActions}
+          secondaryActions={commandSecondaryActions}
+          roleLabel={roleLabel}
+        />
+      )}
     </div>
   );
 }

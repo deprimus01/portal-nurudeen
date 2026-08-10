@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { BookOpen, FileText } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
 import { api } from '../../../lib/api';
 import { ResultsEntry } from '../../../components/ResultsEntry';
 import type { Exam } from '../../../lib/types';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 export default function TeacherResultsPage() {
   const { t } = useLanguage();
@@ -25,14 +27,24 @@ export default function TeacherResultsPage() {
 
       {mySubjects.length === 0 ? (
         <div className="card">
-          <p style={{ color: 'var(--muted)' }}>
-            You&apos;re not assigned to teach any subjects yet - ask an admin to assign you under Staff.
-          </p>
+          <EmptyState
+            icon={BookOpen}
+            title="No subjects assigned yet"
+            description="Ask an admin to assign you to teach a subject under Staff before you can enter results."
+            tone="green"
+          />
         </div>
       ) : loading ? (
         <p style={{ color: 'var(--muted)' }}>Loading…</p>
       ) : exams.length === 0 ? (
-        <div className="card"><p style={{ color: 'var(--muted)' }}>No exams have been created yet.</p></div>
+        <div className="card">
+          <EmptyState
+            icon={FileText}
+            title="No exams yet"
+            description="Once an admin creates an exam for your class, it will appear here for entering results."
+            tone="gold"
+          />
+        </div>
       ) : (
         <ResultsEntry
           examOptions={exams.map((e: any) => ({ id: e.id, label: `${e.class?.name} - ${e.name} (${e.term?.session?.name} ${e.term?.name})` }))}

@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { BookOpen, Layers } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import type { SchoolClass, Subject } from '../../../lib/types';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 export default function ClassSubjectsPage() {
@@ -65,6 +68,24 @@ export default function ClassSubjectsPage() {
 
       {loading ? (
         <p style={{ color: 'var(--muted)' }}>Loading…</p>
+      ) : classes.length === 0 || subjects.length === 0 ? (
+        <div className="card">
+          <EmptyState
+            icon={Layers}
+            title="Nothing to link yet"
+            description={
+              classes.length === 0
+                ? 'Create at least one class and one subject before assigning subjects to classes.'
+                : 'Create at least one subject before assigning it to classes.'
+            }
+            tone="navy"
+            action={
+              <Link href={classes.length === 0 ? '/admin/classes' : '/admin/subjects'} className="btn">
+                <BookOpen size={15} /> Go to {classes.length === 0 ? 'Classes' : 'Subjects'}
+              </Link>
+            }
+          />
+        </div>
       ) : (
         <div className="card">
           <div className="field">

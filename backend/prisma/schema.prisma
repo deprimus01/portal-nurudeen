@@ -48,6 +48,14 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  // Notification preferences — per channel, per notification type.
+  // Defaulting to true preserves today's behaviour (everyone gets
+  // everything) for existing rows when this migration runs.
+  notifyEmailAnnouncements Boolean @default(true)
+  notifySmsAnnouncements   Boolean @default(true)
+  notifyEmailMessages      Boolean @default(true)
+  notifySmsMessages        Boolean @default(true)
+
   staff     Staff?    @relation(fields: [staffId], references: [id])
   staffId   String?   @unique
   guardian  Guardian? @relation(fields: [guardianId], references: [id])

@@ -2,8 +2,10 @@
 
 import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { FileText } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import type { Exam, Term, SchoolClass, GradingScheme } from '../../../lib/types';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 const EMPTY = { name: '', termId: '', classId: '', gradingSchemeId: '' };
@@ -109,7 +111,27 @@ export default function ExamsPage() {
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
         ) : exams.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>{t('common.noResults')}</p>
+          <EmptyState
+            icon={FileText}
+            title="No exams yet"
+            description={
+              schemes.length === 0
+                ? 'Set up a grading scheme, then create your first exam.'
+                : 'Create an exam to start recording results for a class and term.'
+            }
+            tone="gold"
+            action={
+              schemes.length > 0 ? (
+                <button className="btn" onClick={() => setShowForm(true)}>
+                  {t('pages.exams.addButton')}
+                </button>
+              ) : (
+                <Link href="/admin/grading-schemes" className="btn">
+                  Go to Grading Schemes
+                </Link>
+              )
+            }
+          />
         ) : (
           <div className="table-wrap">
           <table>

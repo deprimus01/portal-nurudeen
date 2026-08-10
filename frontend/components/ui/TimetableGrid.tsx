@@ -1,8 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { CalendarClock, Plus } from 'lucide-react';
 import type { TimetableSlot } from '../../lib/types';
+import { EmptyState } from './EmptyState';
 
 export const DAYS: TimetableSlot['dayOfWeek'][] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
 export const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -51,7 +52,7 @@ export function TimetableGrid({ slots, loading, emptyMessage, subLabel, onCellCl
   if (slots.size === 0 && !onCellClick) {
     return (
       <div className="card">
-        <p style={{ color: 'var(--muted)', margin: 0 }}>{emptyMessage}</p>
+        <EmptyState icon={CalendarClock} title="No timetable yet" description={emptyMessage} tone="navy" />
       </div>
     );
   }

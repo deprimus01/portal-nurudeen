@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Send } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 interface LogEntry {
@@ -115,7 +116,12 @@ export default function DeliveryLogPage() {
             ))}
           </div>
         ) : entries.length === 0 ? (
-          <p style={{ padding: '1.25rem 1.5rem', color: 'var(--muted)' }}>{t('common.noResults')}</p>
+          <EmptyState
+            icon={Send}
+            title={filter ? `No ${FILTERS.find((f) => f.value === filter)?.label.toLowerCase()} deliveries` : 'No deliveries yet'}
+            description="Emails and SMS sent for credentials, announcements and messages will be logged here."
+            tone="muted"
+          />
         ) : (
           <table>
             <thead>

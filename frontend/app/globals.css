@@ -574,20 +574,7 @@ tbody tr:last-child td {
   background: rgba(0, 85, 251, 0.12);
   color: var(--blue);
 }
-.shell-nav-item.active::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 16px;
-  background: var(--blue);
-  border-radius: 2px;
-}
-.shell-sidebar.collapsed .shell-nav-item.active::before {
-  left: -6px;
-}
+/* active-nav indicator bar is rendered as a motion element, .shell-nav-active-bar (see micro-interactions section) */
 .shell-sidebar.collapsed .shell-nav-item {
   justify-content: center;
   padding: 7px;
@@ -720,6 +707,26 @@ tbody tr:last-child td {
   padding: 8px 12px;
   color: var(--muted-2);
   font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
+}
+.shell-search:hover {
+  border-color: var(--muted-2);
+  background: var(--surface);
+}
+.shell-search span {
+  flex: 1;
+}
+.shell-search-kbd {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
 }
 @media (max-width: 780px) {
   .shell-search {
@@ -732,6 +739,29 @@ tbody tr:last-child td {
   align-items: center;
   gap: 10px;
   margin-left: auto;
+}
+
+.shell-cmdk-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.18s var(--ease), color 0.18s var(--ease), background 0.18s var(--ease);
+}
+.shell-cmdk-btn:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+@media (max-width: 780px) {
+  .shell-cmdk-btn {
+    display: inline-flex;
+  }
 }
 
 .shell-date {
@@ -1340,6 +1370,45 @@ tbody tr:last-child td {
   padding: 0 20px;
 }
 
+.settings-edit-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+.settings-edit-btn:hover {
+  text-decoration: underline;
+}
+
+.settings-contact-form {
+  max-width: 380px;
+}
+.settings-contact-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.settings-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  padding: 0 16px;
+}
+
+.settings-pref-intro {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin: -6px 0 4px;
+}
+
 .welcome-card {
   position: relative;
   display: flex;
@@ -1616,10 +1685,217 @@ tbody tr:last-child td {
   font-weight: 600;
 }
 
+/* ---- quick actions hub (command center entry point) ---- */
+.qa-hub .panel-head {
+  justify-content: space-between;
+}
+.qa-cmdk-hint {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 7px;
+  color: var(--muted-2);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  cursor: pointer;
+  transition: border-color 0.18s var(--ease), color 0.18s var(--ease);
+}
+.qa-cmdk-hint:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.qa-card-primary .qa-icon {
+  background: rgba(0, 85, 251, 0.1);
+}
+.qa-grid-secondary {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.qa-card-secondary {
+  padding: 10px 12px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.75;
+}
+.qa-card-secondary:hover {
+  opacity: 1;
+}
+.qa-card-secondary .qa-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--muted);
+}
+.qa-card-secondary .qa-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ---- command center (⌘K palette) ---- */
+.cmdk-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 13, 26, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+}
+.cmdk-panel {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92vw;
+  max-width: 560px;
+  max-height: 70vh;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cmdk-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-2);
+  flex-shrink: 0;
+}
+.cmdk-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14.5px;
+  font-family: inherit;
+}
+.cmdk-search input::placeholder {
+  color: var(--muted-2);
+}
+.cmdk-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--muted-2);
+  cursor: pointer;
+}
+.cmdk-close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.cmdk-list {
+  overflow-y: auto;
+  padding: 8px;
+  flex: 1;
+}
+.cmdk-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.cmdk-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-family: inherit;
+}
+.cmdk-item + .cmdk-item {
+  margin-top: 2px;
+}
+.cmdk-item.active {
+  background: var(--surface-2);
+}
+.cmdk-item-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue);
+  flex-shrink: 0;
+}
+.cmdk-item.active .cmdk-item-icon {
+  background: rgba(0, 85, 251, 0.12);
+}
+.cmdk-item-label {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.cmdk-item-hint,
+.cmdk-item-arrow {
+  color: var(--muted-2);
+  display: flex;
+  align-items: center;
+}
+.cmdk-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-2);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.cmdk-footer kbd {
+  font-family: 'IBM Plex Mono', monospace;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-right: 2px;
+  font-size: 10px;
+}
+@media (max-width: 640px) {
+  .cmdk-panel {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    max-height: 80vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+}
+
 /* ---- empty state ---- */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
+  max-width: 380px;
+  margin: 0 auto;
 }
 .empty-illustration {
   width: 100px;
@@ -1639,6 +1915,57 @@ tbody tr:last-child td {
   color: var(--muted);
   font-size: 13px;
   margin-bottom: 18px;
+  line-height: 1.5;
+}
+.empty-state .btn {
+  margin: 0 auto;
+}
+.empty-hint {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.empty-hint a,
+.empty-hint .btn-outline {
+  font-size: 12.5px;
+}
+
+/* Compact variant for dashboard widgets and other embedded contexts */
+.empty-state-compact {
+  padding: 22px 10px;
+  max-width: none;
+}
+.empty-state-compact .empty-illustration {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 10px;
+}
+.empty-state-compact h3 {
+  font-size: 13.5px;
+  margin-bottom: 4px;
+}
+.empty-state-compact p {
+  font-size: 12px;
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .empty-state {
+    padding: 44px 16px;
+  }
+  .empty-illustration {
+    width: 84px;
+    height: 84px;
+  }
+  .empty-state h3 {
+    font-size: 15px;
+  }
 }
 
 /* ---- filter chips / table toolbar ---- */
@@ -2029,4 +2356,385 @@ tbody tr:last-child td {
     box-shadow: none !important;
     border: none !important;
   }
+}
+
+/* =========================================================
+   Dashboard widgets - interactive stat charts
+   ========================================================= */
+.dash-widget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.dash-widget {
+  display: flex;
+  flex-direction: column;
+}
+.dash-widget-head {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dash-widget-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dash-widget-controls select {
+  padding: 6px 10px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+.dash-widget-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: none;
+}
+.dash-widget-link:hover {
+  text-decoration: underline;
+}
+
+.range-tabs {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 2px;
+  gap: 2px;
+}
+.range-tabs button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.range-tabs button.active {
+  color: var(--text);
+}
+
+/* Donut chart */
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.donut-center-value {
+  font-family: 'Lexend', sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+}
+.donut-center-label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.donut-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-2);
+  font-size: 12.5px;
+  border: 1.5px dashed var(--border);
+  border-radius: 50%;
+}
+.donut-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 120px;
+}
+.donut-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: 8px;
+  transition: background 0.15s var(--ease);
+}
+.donut-legend li:hover,
+.donut-legend li.active {
+  background: var(--surface-2);
+}
+.donut-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.donut-legend-label {
+  color: var(--muted);
+  flex: 1;
+}
+.donut-legend-value {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Trend line chart */
+.trend-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.trend-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-2);
+  font-size: 12.5px;
+}
+.trend-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+.trend-axis span {
+  font-size: 10.5px;
+  color: var(--muted-2);
+}
+.trend-axis span.active {
+  color: var(--text);
+  font-weight: 600;
+}
+.trend-tooltip {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Bar chart */
+.bars-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.bars-track {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 120px;
+}
+.bars-empty {
+  color: var(--muted-2);
+  font-size: 12.5px;
+}
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  cursor: pointer;
+  min-width: 0;
+}
+.bar-fill-track {
+  flex: 1;
+  width: 100%;
+  max-width: 28px;
+  display: flex;
+  align-items: flex-end;
+  background: var(--surface-2);
+  border-radius: 6px 6px 2px 2px;
+  overflow: hidden;
+}
+.bar-fill {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  transition: height 0.5s var(--ease), opacity 0.15s var(--ease);
+}
+.bar-col.active .bar-fill,
+.bar-col:hover .bar-fill {
+  opacity: 0.8;
+}
+.bar-label {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--muted-2);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.bars-tooltip {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 600;
+  min-height: 1.2em;
+}
+
+@media (max-width: 640px) {
+  .donut-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* =========================================================
+   Micro-interactions
+   Small, purposeful motion for buttons, forms, tabs, and
+   dashboard widgets. Kept short (120-350ms) and disabled
+   entirely under prefers-reduced-motion (see rule near top).
+   ========================================================= */
+
+/* ---- checkbox / radio feedback ---- */
+input[type='checkbox'],
+input[type='radio'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 17px;
+  height: 17px;
+  min-width: 17px;
+  padding: 0;
+  margin: 0;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: border-color 0.16s var(--ease), background 0.16s var(--ease), transform 0.1s var(--ease);
+}
+input[type='checkbox'] {
+  border-radius: 5px;
+}
+input[type='radio'] {
+  border-radius: 50%;
+}
+input[type='checkbox']:hover,
+input[type='radio']:hover {
+  border-color: var(--muted-2);
+}
+input[type='checkbox']:active,
+input[type='radio']:active {
+  transform: scale(0.92);
+}
+input[type='checkbox']:checked,
+input[type='radio']:checked {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+input[type='checkbox']:focus-visible,
+input[type='radio']:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transform-origin: center;
+  opacity: 0;
+  transition: transform 0.16s var(--ease) 0.02s, opacity 0.1s var(--ease);
+}
+input[type='checkbox']:checked::after {
+  transform: rotate(45deg) scale(1);
+  opacity: 1;
+}
+input[type='radio']::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: #fff;
+  transform: scale(0);
+  transition: transform 0.15s var(--ease);
+}
+input[type='radio']:checked::after {
+  transform: scale(1);
+}
+
+/* ---- badge as a clickable control (e.g. attendance status pills) ---- */
+.badge-btn {
+  transition: transform 0.12s var(--ease), opacity 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.badge-btn:hover {
+  transform: translateY(-1px);
+}
+.badge-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* ---- success flash for a submit button after a save completes ---- */
+@keyframes btnSuccessFlash {
+  0% { box-shadow: 0 6px 18px rgba(0, 85, 251, 0.28); }
+  25% {
+    background: linear-gradient(135deg, var(--success), #15803d);
+    box-shadow: 0 8px 20px rgba(22, 163, 74, 0.32);
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% { box-shadow: 0 6px 18px rgba(0, 85, 251, 0.28); transform: translateY(0) scale(1); }
+}
+.btn-flash-success {
+  animation: btnSuccessFlash 0.85s var(--ease);
+}
+
+/* ---- sliding active-tab / active-nav indicators (framer-motion layoutId pills) ---- */
+.range-tab-pill {
+  position: absolute;
+  inset: 0;
+  background: var(--surface);
+  border-radius: 100px;
+  box-shadow: var(--shadow-sm);
+  z-index: 0;
+}
+.range-tabs button {
+  position: relative;
+}
+.range-tabs button span {
+  position: relative;
+  z-index: 1;
+}
+
+.shell-nav-active-bar {
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  width: 3px;
+  height: 16px;
+  background: var(--blue);
+  border-radius: 2px;
+  transform: translateY(-50%);
+}
+.shell-sidebar.collapsed .shell-nav-active-bar {
+  left: -6px;
+}
+
+/* ---- toast-style inline notices (offline banner, sync status) ---- */
+.notice-enter {
+  animation: noticeIn 0.3s var(--ease);
+}
+@keyframes noticeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }

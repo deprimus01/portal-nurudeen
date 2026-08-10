@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CalendarCheck, UserCircle } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
 import { api, ApiError } from '../../../lib/api';
 import { OfflineBanner } from '../../../components/ui/OfflineBanner';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 interface AttendanceRecord {
   id: string;
@@ -38,7 +40,14 @@ export default function GuardianAttendancePage() {
     return (
       <div>
         <div className="topbar"><h1 style={{ fontSize: '1.4rem' }}>Attendance</h1></div>
-        <div className="card"><p style={{ color: 'var(--muted)' }}>No students linked to your account yet.</p></div>
+        <div className="card">
+          <EmptyState
+            icon={UserCircle}
+            title="No students linked"
+            description="No students are linked to your account yet. Contact the school office to have your child linked."
+            tone="muted"
+          />
+        </div>
       </div>
     );
   }
@@ -75,7 +84,12 @@ export default function GuardianAttendancePage() {
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>Loading…</p>
         ) : records.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>No attendance recorded yet.</p>
+          <EmptyState
+            icon={CalendarCheck}
+            title="No attendance recorded yet"
+            description="Attendance marked by your child's teacher will appear here."
+            tone="green"
+          />
         ) : (
           <div className="table-wrap">
           <table>

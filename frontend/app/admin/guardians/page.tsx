@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import { Search, UserPlus, Users } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import type { Guardian } from '../../../lib/types';
 import { ForceResetPasswordButton } from '../../../components/ui/ForceResetPasswordButton';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 const EMPTY = { firstName: '', lastName: '', phone: '', email: '', address: '' };
@@ -112,7 +114,23 @@ export default function GuardiansPage() {
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
         ) : guardians.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>{t('common.noResults')}</p>
+          <EmptyState
+            icon={search.trim() ? Search : Users}
+            title={search.trim() ? 'No matching guardians' : 'No guardians yet'}
+            description={
+              search.trim()
+                ? `No guardians match "${search}". Try a different name, phone or email.`
+                : 'Guardians are usually added automatically when you enroll a student, or you can add one directly.'
+            }
+            tone="blue"
+            action={
+              !search.trim() ? (
+                <button className="btn" onClick={() => setShowForm(true)}>
+                  <UserPlus size={15} /> {`${t('common.add')} ${t('fields.guardian')}`}
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="table-wrap">
           <table>

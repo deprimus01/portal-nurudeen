@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import { ListChecks, Plus } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import type { GradingScheme, GradingBand } from '../../../lib/types';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 function emptyBand(): GradingBand {
@@ -136,7 +138,17 @@ export default function GradingSchemesPage() {
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>Loading…</p>
         ) : schemes.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>No grading schemes yet.</p>
+          <EmptyState
+            icon={ListChecks}
+            title="No grading schemes yet"
+            description="Create a scheme (e.g. A1–F9) to define how scores map to grades before creating exams."
+            tone="green"
+            action={
+              <button className="btn" onClick={() => setShowForm(true)}>
+                <Plus size={15} /> Add Scheme
+              </button>
+            }
+          />
         ) : (
           schemes.map((s) => (
             <div key={s.id} style={{ marginBottom: '1.2rem' }}>

@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import { Briefcase } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import type { Staff, Subject, SchoolClass } from '../../../lib/types';
 import { ForceResetPasswordButton } from '../../../components/ui/ForceResetPasswordButton';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 const ROLE_OPTIONS = ['TEACHER', 'ADMIN', 'TEACHER_ADMIN'];
@@ -158,7 +160,17 @@ export default function StaffPage() {
         {loading ? (
           <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
         ) : staff.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>{t('common.noResults')}</p>
+          <EmptyState
+            icon={Briefcase}
+            title="No staff yet"
+            description="Add teachers and admins to assign them to classes and subjects."
+            tone="navy"
+            action={
+              <button className="btn" onClick={() => setShowForm(true)}>
+                {t('pages.staff.addButton')}
+              </button>
+            }
+          />
         ) : (
           <div className="table-wrap">
           <table>

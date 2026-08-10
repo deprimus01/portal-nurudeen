@@ -88,8 +88,14 @@ async function notifyBySms({ recipientType, recipientId, to, message, logMessage
 // Fires both channels in parallel and never rejects, regardless of how
 // either individual send resolves — callers of the four exported
 // notify*() functions below don't need to know two channels exist.
+// Either arg can be `null` (recipient opted out of that channel for this
+// notification type) — that channel is simply skipped, not logged as a
+// failure, since declining isn't an error.
 async function notifyBoth({ email: emailArgs, sms: smsArgs }) {
-  const results = await Promise.allSettled([notifyByEmail(emailArgs), notifyBySms(smsArgs)]);
+  const results = await Promise.allSettled([
+    emailArgs ? notifyByEmail(emailArgs) : Promise.resolve(false),
+    smsArgs ? notifyBySms(smsArgs) : Promise.resolve(false),
+  ]);
   return {
     emailSent: results[0].status === 'fulfilled' && results[0].value,
     smsSent: results[1].status === 'fulfilled' && results[1].value,
@@ -191,22 +197,26 @@ export async function notifyAnnouncementRecipients(announcement) {
         const sms = announcementSms({ title: announcement.title, audienceLabel });
 
         return notifyBoth({
-          email: {
-            recipientType: 'guardian',
-            recipientId: g.id,
-            to: g.user.email,
-            subject,
-            html,
-            text,
-            logMessage: `Announcement "${announcement.title}" emailed to ${g.user.email}.`,
-          },
-          sms: {
-            recipientType: 'guardian',
-            recipientId: g.id,
-            to: g.phone,
-            message: sms,
-            logMessage: `Announcement "${announcement.title}" texted to ${g.phone || 'unknown number'}.`,
-          },
+          email: g.user.notifyEmailAnnouncements
+            ? {
+                recipientType: 'guardian',
+                recipientId: g.id,
+                to: g.user.email,
+                subject,
+                html,
+                text,
+                logMessage: `Announcement "${announcement.title}" emailed to ${g.user.email}.`,
+              }
+            : null,
+          sms: g.user.notifySmsAnnouncements
+            ? {
+                recipientType: 'guardian',
+                recipientId: g.id,
+                to: g.phone,
+                message: sms,
+                logMessage: `Announcement "${announcement.title}" texted to ${g.phone || 'unknown number'}.`,
+              }
+            : null,
         });
       }),
     );
@@ -230,20 +240,24 @@ export async function notifyNewMessage({ recipientUser, senderName, body }) {
     const sms = newMessageSms({ senderName });
 
     await notifyBoth({
-      email: {
-        ...recipientRefForUser(recipientUser),
-        to: recipientUser.email,
-        subject,
-        html,
-        text,
-        logMessage: `New message from ${senderName} emailed to ${recipientUser.email}.`,
-      },
-      sms: {
-        ...recipientRefForUser(recipientUser),
-        to: profile.phone,
-        message: sms,
-        logMessage: `New message from ${senderName} texted to ${profile.phone || 'unknown number'}.`,
-      },
+      email: recipientUser.notifyEmailMessages
+        ? {
+            ...recipientRefForUser(recipientUser),
+            to: recipientUser.email,
+            subject,
+            html,
+            text,
+            logMessage: `New message from ${senderName} emailed to ${recipientUser.email}.`,
+          }
+        : null,
+      sms: recipientUser.notifySmsMessages
+        ? {
+            ...recipientRefForUser(recipientUser),
+            to: profile.phone,
+            message: sms,
+            logMessage: `New message from ${senderName} texted to ${profile.phone || 'unknown number'}.`,
+          }
+        : null,
     });
   } catch {
     // Swallow — this runs detached from the request/response cycle.

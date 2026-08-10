@@ -6,6 +6,7 @@ import { Award, BarChart3, CheckSquare, Clock, LayoutDashboard, Megaphone, Messa
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { AppShell, NavGroup } from '../../components/ui/AppShell';
+import { buildTeacherActions } from '../../lib/commandActions';
 
 const MOBILE_PRIMARY = ['/teacher', '/teacher/attendance', '/teacher/results', '/teacher/messages'];
 
@@ -46,6 +47,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     [t],
   );
 
+  const commandActions = useMemo(() => buildTeacherActions(), []);
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -78,6 +81,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       onLogout={logout}
       mobilePrimaryHrefs={MOBILE_PRIMARY}
       settingsHref="/teacher/settings"
+      commandActions={commandActions}
     >
       {children}
     </AppShell>

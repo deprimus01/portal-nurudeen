@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { CalendarClock, Layers, X } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import type { SchoolClass, Subject, Staff, TimetableSlot } from '../../../lib/types';
 import { DAYS, PERIODS, slotKey, TimetableGrid } from '../../../components/ui/TimetableGrid';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -122,11 +124,29 @@ export default function AdminTimetablePage() {
             Click any cell to assign a subject + teacher, or label it (e.g. &ldquo;Assembly&rdquo;, &ldquo;Break&rdquo;).
           </p>
         </div>
-        <select value={classId} onChange={(e) => setClassId(e.target.value)} style={{ maxWidth: '220px' }}>
-          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        {classes.length > 0 && (
+          <select value={classId} onChange={(e) => setClassId(e.target.value)} style={{ maxWidth: '220px' }}>
+            {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        )}
       </div>
 
+      {!loading && classes.length === 0 ? (
+        <div className="card">
+          <EmptyState
+            icon={CalendarClock}
+            title="No classes to schedule yet"
+            description="Create a class before building its timetable."
+            tone="navy"
+            action={
+              <Link href="/admin/classes" className="btn">
+                <Layers size={15} /> Go to Classes
+              </Link>
+            }
+          />
+        </div>
+      ) : (
+      <>
       <AnimatePresence>
         {editingCell && (
           <motion.div
@@ -188,6 +208,8 @@ export default function AdminTimetablePage() {
         subLabel={(slot) => (slot.staff ? `${slot.staff.firstName} ${slot.staff.lastName}` : undefined)}
         onCellClick={openCell}
       />
+      </>
+      )}
     </div>
   );
 }

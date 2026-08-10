@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Layers } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { AttendanceEntry } from '../../../components/AttendanceEntry';
 import type { SchoolClass } from '../../../lib/types';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 export default function AdminAttendancePage() {
@@ -27,7 +30,13 @@ export default function AdminAttendancePage() {
         <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
       ) : classes.length === 0 ? (
         <div className="card">
-          <p style={{ color: 'var(--muted)' }}>Create a class first under Classes.</p>
+          <EmptyState
+            icon={Layers}
+            title="No classes to mark attendance for"
+            description="Create a class first, then come back here to take attendance."
+            tone="navy"
+            action={<Link href="/admin/classes" className="btn">Go to Classes</Link>}
+          />
         </div>
       ) : (
         <AttendanceEntry classOptions={classes} />

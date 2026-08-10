@@ -345,16 +345,32 @@ export default function StudentsPage() {
             ))}
           </div>
         ) : filteredStudents.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No students yet"
-            description="Add your first student to start tracking attendance, results and fees."
-            action={
-              <button className="btn" onClick={() => setShowForm(true)}>
-                <UserPlus size={15} /> Enroll Student
-              </button>
-            }
-          />
+          students.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No students yet"
+              description="Students enrolled in this school will appear here."
+              tone="blue"
+              action={
+                <button className="btn" onClick={() => setShowForm(true)}>
+                  <UserPlus size={15} /> Add Student
+                </button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={Search}
+              title="No matching students"
+              description={
+                search.trim() && classFilter !== 'ALL'
+                  ? `No students match "${search}" in this class.`
+                  : search.trim()
+                  ? `No students match "${search}".`
+                  : 'No students in this class yet.'
+              }
+              tone="blue"
+            />
+          )
         ) : (
           <table>
             <thead>

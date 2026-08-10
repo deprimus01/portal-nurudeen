@@ -1,12 +1,19 @@
 'use client';
 
-import { BarChart3, CheckSquare, Clock, Megaphone, UserCircle } from 'lucide-react';
+import { UserCircle } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
-import { QuickAction } from '../../components/ui/QuickAction';
+import { QuickActionsHub } from '../../components/ui/QuickActionsHub';
 import { WelcomeCard } from '../../components/ui/WelcomeCard';
+import { buildStudentActions } from '../../lib/commandActions';
 import { useLanguage } from '../../lib/i18n/language-context';
+import { AttendanceWidget } from '../../components/dashboard/AttendanceWidget';
+import { ResultsWidget } from '../../components/dashboard/ResultsWidget';
+import { StudentExamsWidget } from '../../components/dashboard/StudentExamsWidget';
+import { TodayScheduleWidget } from '../../components/dashboard/TodayScheduleWidget';
+import { RecentAnnouncementsWidget } from '../../components/dashboard/RecentAnnouncementsWidget';
 
 interface StudentProfile {
+  id?: string;
   firstName?: string;
   lastName?: string;
   admissionNumber?: string;
@@ -22,40 +29,49 @@ export default function StudentDashboardPage() {
     <div>
       <WelcomeCard
         name={profile?.firstName || t('role.student')}
-        subtitle="Your details and shortcuts to your timetable, attendance and results."
+        subtitle={`${profile?.currentClass?.name || 'Your class'} · today's schedule, attendance and results in one place.`}
         icon={UserCircle}
       />
 
-      <div className="panel" style={{ marginBottom: 20 }}>
-        <div className="panel-head">
-          <h3>Your details</h3>
-        </div>
-        <div className="today-item" style={{ borderBottom: 'none', paddingBottom: 0 }}>
-          <div className="today-icon" style={{ background: 'rgba(201,151,74,0.14)', color: 'var(--gold)' }}>
-            <UserCircle size={16} />
+      <div className="grid-2">
+        <TodayScheduleWidget
+          source={{ kind: 'student', studentId: profile?.id || '' }}
+          subLabel={(slot) => (slot.staff ? `${slot.staff.firstName} ${slot.staff.lastName}` : undefined)}
+        />
+
+        <div className="panel">
+          <div className="panel-head">
+            <h3>Your details</h3>
           </div>
-          <div className="ti-text">
-            <div className="ti-title">
-              {profile?.firstName} {profile?.lastName}
+          <div className="today-item" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+            <div className="today-icon" style={{ background: 'rgba(201,151,74,0.14)', color: 'var(--gold)' }}>
+              <UserCircle size={16} />
             </div>
-            <div className="ti-sub">
-              {profile?.admissionNumber} · {profile?.currentClass?.name || 'Not assigned yet'}
+            <div className="ti-text">
+              <div className="ti-title">
+                {profile?.firstName} {profile?.lastName}
+              </div>
+              <div className="ti-sub">
+                {profile?.admissionNumber} · {profile?.currentClass?.name || 'Not assigned yet'}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h3>{t('guardianDashboard.quickLinks')}</h3>
+      {profile?.id && (
+        <div className="dash-widget-grid">
+          <AttendanceWidget studentId={profile.id} href="/student/attendance" />
+          <ResultsWidget studentId={profile.id} href="/student/results" />
+          <StudentExamsWidget studentId={profile.id} href="/student/results" />
         </div>
-        <div className="qa-grid">
-          <QuickAction label={t('nav.timetable')} href="/student/timetable" icon={Clock} index={0} />
-          <QuickAction label={t('nav.attendance')} href="/student/attendance" icon={CheckSquare} index={1} />
-          <QuickAction label={t('nav.results')} href="/student/results" icon={BarChart3} index={2} />
-          <QuickAction label={t('nav.announcements')} href="/student/announcements" icon={Megaphone} index={3} />
-        </div>
+      )}
+
+      <div style={{ marginBottom: 20 }}>
+        <RecentAnnouncementsWidget href="/student/announcements" />
       </div>
+
+      <QuickActionsHub title={t('guardianDashboard.quickLinks')} primary={buildStudentActions(t)} />
     </div>
   );
 }

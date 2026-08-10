@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { FileText } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { ResultsEntry } from '../../../components/ResultsEntry';
 import type { Exam, Subject } from '../../../lib/types';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 export default function AdminResultsPage() {
@@ -25,7 +28,15 @@ export default function AdminResultsPage() {
       {loading ? (
         <p style={{ color: 'var(--muted)' }}>Loading…</p>
       ) : exams.length === 0 ? (
-        <div className="card"><p style={{ color: 'var(--muted)' }}>Create an exam first under Exams.</p></div>
+        <div className="card">
+          <EmptyState
+            icon={FileText}
+            title="No exams to enter results for"
+            description="Create an exam first, then come back here to enter scores."
+            tone="gold"
+            action={<Link href="/admin/exams" className="btn">Go to Exams</Link>}
+          />
+        </div>
       ) : (
         <ResultsEntry
           examOptions={exams.map((e: any) => ({ id: e.id, label: `${e.class?.name} - ${e.name} (${e.term?.session?.name} ${e.term?.name})` }))}

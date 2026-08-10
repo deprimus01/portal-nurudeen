@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Sparkles } from 'lucide-react';
+import { MessageCircleQuestion, Sparkles, UserCircle } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
 import { api, ApiError } from '../../../lib/api';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 interface QaEntry {
   question: string;
@@ -44,7 +45,14 @@ export default function GuardianAskPage() {
     return (
       <div>
         <div className="topbar"><h1 style={{ fontSize: '1.4rem' }}>Ask AI</h1></div>
-        <div className="card"><p style={{ color: 'var(--muted)' }}>No students linked to your account yet.</p></div>
+        <div className="card">
+          <EmptyState
+            icon={UserCircle}
+            title="No students linked"
+            description="No students are linked to your account yet. Contact the school office to have your child linked."
+            tone="muted"
+          />
+        </div>
       </div>
     );
   }
@@ -71,10 +79,13 @@ export default function GuardianAskPage() {
 
       <div className="card" style={{ marginBottom: '1.5rem', minHeight: '200px' }}>
         {history.length === 0 ? (
-          <p style={{ color: 'var(--muted)' }}>
-            Try asking something like &ldquo;How is my child doing this term?&rdquo; or &ldquo;Is
-            there an outstanding fee balance?&rdquo;
-          </p>
+          <EmptyState
+            icon={MessageCircleQuestion}
+            title="Ask your first question"
+            description={'Try "How is my child doing this term?" or "Is there an outstanding fee balance?"'}
+            tone="gold"
+            compact
+          />
         ) : (
           history.map((entry, i) => (
             <div key={i} style={{ marginBottom: '1.2rem' }}>

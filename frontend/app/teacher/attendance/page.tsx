@@ -1,8 +1,10 @@
 'use client';
 
+import { Users } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
 import { AttendanceEntry } from '../../../components/AttendanceEntry';
 import { useLanguage } from '../../../lib/i18n/language-context';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 export default function TeacherAttendancePage() {
   const { t } = useLanguage();
@@ -18,9 +20,12 @@ export default function TeacherAttendancePage() {
 
       {classOptions.length === 0 ? (
         <div className="card">
-          <p style={{ color: 'var(--muted)' }}>
-            You haven&apos;t been assigned to any classes yet - ask an admin to assign you under Staff.
-          </p>
+          <EmptyState
+            icon={Users}
+            title="No classes assigned yet"
+            description="Ask an admin to assign you to a class under Staff before you can take attendance."
+            tone="navy"
+          />
         </div>
       ) : (
         <AttendanceEntry classOptions={classOptions} />

@@ -197,7 +197,18 @@ export default function AdminFeesPage() {
           )}
         </AnimatePresence>
         {structures.length === 0 ? (
-          <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: 0 }}>No fee structure items yet.</p>
+          <EmptyState
+            icon={Wallet}
+            title="No fee items yet"
+            description="Add a line item (e.g. Tuition) for a class and term before generating invoices."
+            tone="gold"
+            compact
+            action={
+              <button className="btn" onClick={() => setShowStructureForm(true)}>
+                <Plus size={15} /> Add line item
+              </button>
+            }
+          />
         ) : (
           <div className="table-wrap">
           <table>
@@ -300,7 +311,16 @@ export default function AdminFeesPage() {
             ))}
           </div>
         ) : filteredInvoices.length === 0 ? (
-          <EmptyState icon={FileText} title="No invoices" description={statusFilter === 'ALL' ? 'No invoices yet.' : `No ${FILTER_LABELS[statusFilter].toLowerCase()} invoices.`} />
+          <EmptyState
+            icon={FileText}
+            title={statusFilter === 'ALL' ? 'No invoices yet' : `No ${FILTER_LABELS[statusFilter].toLowerCase()} invoices`}
+            description={
+              statusFilter === 'ALL'
+                ? 'Generate invoices for a class and term using the form below.'
+                : 'Try a different status filter, or check back later.'
+            }
+            tone="blue"
+          />
         ) : (
           <table>
             <thead><tr><th>Student</th><th>Term</th><th>Amount</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>

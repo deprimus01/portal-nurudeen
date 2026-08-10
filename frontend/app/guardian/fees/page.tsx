@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FileText, TrendingUp, Wallet } from 'lucide-react';
+import { FileText, TrendingUp, UserCircle, Wallet } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
 import { api, ApiError } from '../../../lib/api';
 import type { Invoice } from '../../../lib/types';
@@ -46,7 +46,7 @@ export default function GuardianFeesPage() {
     return (
       <div>
         <div className="topbar"><h1 className="page-title">Fees</h1></div>
-        <div className="card"><EmptyState icon={Wallet} title="No students linked" description="No students are linked to your account yet." /></div>
+        <div className="card"><EmptyState icon={UserCircle} title="No students linked" description="No students are linked to your account yet. Contact the school office to have your child linked." tone="muted" /></div>
       </div>
     );
   }
@@ -72,7 +72,12 @@ export default function GuardianFeesPage() {
             ))}
           </div>
         ) : invoices.length === 0 ? (
-          <EmptyState icon={FileText} title="No invoices yet" />
+          <EmptyState
+            icon={FileText}
+            title="No invoices yet"
+            description="Invoices will appear here once the school issues fees for your child's class."
+            tone="blue"
+          />
         ) : (
           <table>
             <thead><tr><th>Student</th><th>Term</th><th>Amount</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>

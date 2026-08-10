@@ -1,5 +1,6 @@
 'use client';
 
+import { Layers } from 'lucide-react';
 import { SimpleCrud } from '../../../components/SimpleCrud';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
@@ -28,6 +29,10 @@ export default function ClassesPage() {
         { key: 'sortOrder', label: 'Sort order' },
       ]}
       emptyDefaults={{ name: '', level: '', sortOrder: 0 }}
+      emptyIcon={Layers}
+      emptyTitle="No classes yet"
+      emptyDescription="Create classes like JSS1 or SSS3 to start enrolling students and building timetables."
+      emptyTone="gold"
     />
   );
 }

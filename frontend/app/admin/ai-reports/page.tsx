@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react';
 import { Sparkles, Search } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import type { NlReportResponse } from '../../../lib/types';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 
 const EXAMPLE_QUESTIONS = [
@@ -84,6 +85,17 @@ export default function AdminAiReportsPage() {
       </div>
 
       {error && <p className="error-text">{error}</p>}
+
+      {!result && !loading && !error && (
+        <div className="card">
+          <EmptyState
+            icon={Sparkles}
+            title="Ask your first question"
+            description="Type a question above or tap one of the examples to generate a report."
+            tone="gold"
+          />
+        </div>
+      )}
 
       {result && (
         <div className="card">

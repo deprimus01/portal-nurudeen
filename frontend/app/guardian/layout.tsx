@@ -6,6 +6,7 @@ import { BarChart3, CheckSquare, LayoutDashboard, Megaphone, MessageSquare, Spar
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { AppShell, NavGroup } from '../../components/ui/AppShell';
+import { buildGuardianActions, buildGuardianSecondaryActions } from '../../lib/commandActions';
 
 const MOBILE_PRIMARY = ['/guardian', '/guardian/ask', '/guardian/fees', '/guardian/messages'];
 
@@ -31,6 +32,9 @@ export default function GuardianLayout({ children }: { children: React.ReactNode
     ],
     [t],
   );
+
+  const commandActions = useMemo(() => buildGuardianActions(t), [t]);
+  const commandSecondaryActions = useMemo(() => buildGuardianSecondaryActions(t), [t]);
 
   useEffect(() => {
     if (loading) return;
@@ -64,6 +68,8 @@ export default function GuardianLayout({ children }: { children: React.ReactNode
       onLogout={logout}
       mobilePrimaryHrefs={MOBILE_PRIMARY}
       settingsHref="/guardian/settings"
+      commandActions={commandActions}
+      commandSecondaryActions={commandSecondaryActions}
     >
       {children}
     </AppShell>

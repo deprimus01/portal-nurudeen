@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Inbox, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { Check, Inbox, LucideIcon, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
-import { EmptyState } from './ui/EmptyState';
+import { EmptyState, EmptyStateTone } from './ui/EmptyState';
 
 interface FieldConfig {
   name: string;
@@ -27,16 +27,36 @@ interface SimpleCrudProps {
   fields: FieldConfig[];
   columns: Column[];
   emptyDefaults?: Record<string, unknown>;
+  /** Icon shown in the empty state - defaults to a generic inbox if not provided. */
+  emptyIcon?: LucideIcon;
+  /** Empty-state heading override - defaults to "No {title} yet". */
+  emptyTitle?: string;
+  /** Empty-state description override. */
+  emptyDescription?: string;
+  /** Empty-state icon accent color. */
+  emptyTone?: EmptyStateTone;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-export function SimpleCrud({ title, description, endpoint, fields, columns, emptyDefaults = {} }: SimpleCrudProps) {
+export function SimpleCrud({
+  title,
+  description,
+  endpoint,
+  fields,
+  columns,
+  emptyDefaults = {},
+  emptyIcon,
+  emptyTitle,
+  emptyDescription,
+  emptyTone = 'blue',
+}: SimpleCrudProps) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Record<string, unknown>>(emptyDefaults);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -69,8 +89,12 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
       } else {
         await api.post(endpoint, form);
       }
-      closeForm();
       await load();
+      setJustSaved(true);
+      setTimeout(() => {
+        setJustSaved(false);
+        closeForm();
+      }, 550);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save.');
     } finally {
@@ -181,8 +205,23 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
               ))}
             </div>
             {error && <p className="error-text">{error}</p>}
-            <button className="btn" type="submit" disabled={submitting} style={{ marginTop: '1.1rem' }}>
-              {submitting ? <span className="login-spinner" aria-hidden="true" /> : editingId ? 'Save changes' : 'Save'}
+            <button
+              className={`btn${justSaved ? ' btn-flash-success' : ''}`}
+              type="submit"
+              disabled={submitting}
+              style={{ marginTop: '1.1rem' }}
+            >
+              {submitting ? (
+                <span className="login-spinner" aria-hidden="true" />
+              ) : justSaved ? (
+                <>
+                  <Check size={15} /> Saved
+                </>
+              ) : editingId ? (
+                'Save changes'
+              ) : (
+                'Save'
+              )}
             </button>
           </motion.form>
         )}
@@ -212,9 +251,10 @@ export function SimpleCrud({ title, description, endpoint, fields, columns, empt
           </div>
         ) : items.length === 0 ? (
           <EmptyState
-            icon={Inbox}
-            title={`No ${title.toLowerCase()} yet`}
-            description={`Add your first ${title.replace(/s$/, '').toLowerCase()} to get started.`}
+            icon={emptyIcon || Inbox}
+            title={emptyTitle || `No ${title.toLowerCase()} yet`}
+            description={emptyDescription || `Add your first ${title.replace(/s$/, '').toLowerCase()} to get started.`}
+            tone={emptyTone}
             action={
               <button className="btn" onClick={() => setShowForm(true)}>
                 <Plus size={15} /> Add {title.replace(/s$/, '')}

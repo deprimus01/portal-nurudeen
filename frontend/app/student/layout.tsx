@@ -6,6 +6,7 @@ import { BarChart3, CheckSquare, Clock, LayoutDashboard, Megaphone } from 'lucid
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { AppShell, NavGroup } from '../../components/ui/AppShell';
+import { buildStudentActions } from '../../lib/commandActions';
 
 const MOBILE_PRIMARY = ['/student', '/student/timetable', '/student/attendance', '/student/results'];
 
@@ -32,6 +33,8 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     ],
     [t],
   );
+
+  const commandActions = useMemo(() => buildStudentActions(t), [t]);
 
   useEffect(() => {
     if (loading) return;
@@ -64,6 +67,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       onLogout={logout}
       mobilePrimaryHrefs={MOBILE_PRIMARY}
       settingsHref="/student/settings"
+      commandActions={commandActions}
     >
       {children}
     </AppShell>
