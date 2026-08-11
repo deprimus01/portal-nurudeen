@@ -97,8 +97,36 @@ function AppShellBody({
   // AnimatePresence: if it's reopened while its backdrop/panel are still
   // animating out, the exit and a fresh enter can overlap and leave a
   // stale node mounted. Guard it the same way.
+  //
+  // Unlike the command center, this drawer's close is also fired
+  // automatically on every pathname change (see the effect below), racing
+  // PageTransition's own AnimatePresence swap on the same tick. If that
+  // contention ever causes Framer Motion's onExitComplete to stall or get
+  // skipped, mobileClosingRef would otherwise stay stuck "true" forever -
+  // silently no-op'ing both the hamburger and "More" button (they share
+  // this same gate). MOBILE_CLOSE_FALLBACK_MS bounds that wait so the ref
+  // always self-clears even if onExitComplete never fires - it mirrors
+  // the exit transition's own duration below, it's not an arbitrary delay.
+  const MOBILE_CLOSE_FALLBACK_MS = 400; // 320ms exit transition + buffer
   const mobileClosingRef = useRef(false);
   const mobilePendingOpenRef = useRef(false);
+  const mobileClosingFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearMobileClosingFallback = useCallback(() => {
+    if (mobileClosingFallbackRef.current) {
+      clearTimeout(mobileClosingFallbackRef.current);
+      mobileClosingFallbackRef.current = null;
+    }
+  }, []);
+
+  const handleMobileExitComplete = useCallback(() => {
+    clearMobileClosingFallback();
+    mobileClosingRef.current = false;
+    if (mobilePendingOpenRef.current) {
+      mobilePendingOpenRef.current = false;
+      setMobileOpen(true);
+    }
+  }, [clearMobileClosingFallback]);
 
   const openMobileSidebar = useCallback(() => {
     if (mobileClosingRef.current) {
@@ -110,18 +138,19 @@ function AppShellBody({
 
   const closeMobileSidebar = useCallback(() => {
     setMobileOpen((prev) => {
-      if (prev) mobileClosingRef.current = true;
+      if (prev) {
+        mobileClosingRef.current = true;
+        clearMobileClosingFallback();
+        mobileClosingFallbackRef.current = setTimeout(
+          handleMobileExitComplete,
+          MOBILE_CLOSE_FALLBACK_MS,
+        );
+      }
       return false;
     });
-  }, []);
+  }, [clearMobileClosingFallback, handleMobileExitComplete]);
 
-  const handleMobileExitComplete = useCallback(() => {
-    mobileClosingRef.current = false;
-    if (mobilePendingOpenRef.current) {
-      mobilePendingOpenRef.current = false;
-      setMobileOpen(true);
-    }
-  }, []);
+  useEffect(() => () => clearMobileClosingFallback(), [clearMobileClosingFallback]);
 
   useEffect(() => {
     setDateStr(

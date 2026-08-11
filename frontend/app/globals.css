@@ -3204,7 +3204,8 @@ tbody tr:hover .dt-menu-trigger,
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 200px;
+  width: 200px;
+  max-width: calc(100vw - 24px);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -3242,6 +3243,8 @@ tbody tr:hover .dt-menu-trigger,
   cursor: pointer;
   transition: background 0.12s var(--ease), color 0.12s var(--ease);
   text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .dt-menu-item:hover:not(:disabled) {
   background: var(--surface-2);
