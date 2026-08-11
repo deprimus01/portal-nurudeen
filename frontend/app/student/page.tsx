@@ -11,6 +11,7 @@ import { ResultsWidget } from '../../components/dashboard/ResultsWidget';
 import { StudentExamsWidget } from '../../components/dashboard/StudentExamsWidget';
 import { TodayScheduleWidget } from '../../components/dashboard/TodayScheduleWidget';
 import { RecentAnnouncementsWidget } from '../../components/dashboard/RecentAnnouncementsWidget';
+import { RecentActivityWidget } from '../../components/dashboard/RecentActivityWidget';
 
 interface StudentProfile {
   id?: string;
@@ -67,8 +68,9 @@ export default function StudentDashboardPage() {
         </div>
       )}
 
-      <div style={{ marginBottom: 20 }}>
+      <div className="grid-2">
         <RecentAnnouncementsWidget href="/student/announcements" />
+        <RecentActivityWidget />
       </div>
 
       <QuickActionsHub title={t('guardianDashboard.quickLinks')} primary={buildStudentActions(t)} />

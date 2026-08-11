@@ -32,9 +32,10 @@ export function ResultsWidget({ studentId, href, title = 'Academic performance' 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadExams() {
     if (!studentId) return;
     setLoading(true);
+    setError(null);
     setReport(null);
     api
       .get<Exam[]>(`/api/exams/for-student/${studentId}`)
@@ -44,9 +45,11 @@ export function ResultsWidget({ studentId, href, title = 'Academic performance' 
       })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load exams.')))
       .finally(() => setLoading(false));
-  }, [studentId]);
+  }
 
-  useEffect(() => {
+  useEffect(() => { loadExams(); }, [studentId]);
+
+  function loadReport() {
     if (!studentId || !examId) return;
     setLoading(true);
     setError(null);
@@ -55,7 +58,9 @@ export function ResultsWidget({ studentId, href, title = 'Academic performance' 
       .then(setReport)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load report card.')))
       .finally(() => setLoading(false));
-  }, [studentId, examId]);
+  }
+
+  useEffect(() => { loadReport(); }, [studentId, examId]);
 
   const subjectBars = useMemo(
     () =>
@@ -82,6 +87,7 @@ export function ResultsWidget({ studentId, href, title = 'Academic performance' 
       linkLabel="View results"
       loading={loading}
       error={error}
+      onRetry={exams.length === 0 ? loadExams : loadReport}
       controls={
         exams.length > 1 ? (
           <select value={examId} onChange={(e) => setExamId(e.target.value)} aria-label="Select exam">

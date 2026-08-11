@@ -57,7 +57,14 @@ export function ActivityFeedWidget({ title = 'Recent activity' }: { title?: stri
   useEffect(() => {
     api
       .get<{ activity: ActivityEntry[] }>('/api/notifications/activity?limit=8')
-      .then((res) => setEntries(res.activity))
+      // `res.activity` defensively defaulted to [] - an unexpected response
+      // shape (stale offline cache, a backend hiccup that still resolves
+      // 200) must never leave `entries` as undefined, since the render
+      // below calls entries.length/.map unconditionally once loading
+      // finishes. An uncaught throw here isn't scoped to this widget: with
+      // no error boundary on the admin/teacher layout it takes down the
+      // whole AppShell, sidebar included (see app/admin/error.tsx).
+      .then((res) => setEntries(res?.activity ?? []))
       .catch((err) => setError(getErrorMessage(err, 'Failed to load activity.')))
       .finally(() => setLoading(false));
   }, []);

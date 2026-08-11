@@ -43,7 +43,7 @@ export function ResultsEntry({
       const data = await api.get<{ roster: RosterEntry[] }>(
         `/api/results/roster?examId=${examId}&subjectId=${subjectId}`,
       );
-      setRoster(data.roster);
+      setRoster(data?.roster ?? []);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load roster.'));
       setRoster([]);

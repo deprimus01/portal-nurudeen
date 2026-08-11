@@ -14,6 +14,7 @@ import { ResultsWidget } from '../../components/dashboard/ResultsWidget';
 import { StudentExamsWidget } from '../../components/dashboard/StudentExamsWidget';
 import { RecentAnnouncementsWidget } from '../../components/dashboard/RecentAnnouncementsWidget';
 import { MessagesWidget } from '../../components/dashboard/MessagesWidget';
+import { RecentActivityWidget } from '../../components/dashboard/RecentActivityWidget';
 
 interface GuardianProfile {
   firstName?: string;
@@ -93,6 +94,10 @@ export default function GuardianDashboardPage() {
       <div className="grid-2">
         <RecentAnnouncementsWidget href="/guardian/announcements" />
         <MessagesWidget href="/guardian/messages" />
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <RecentActivityWidget />
       </div>
 
       <QuickActionsHub

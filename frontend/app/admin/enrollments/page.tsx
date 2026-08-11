@@ -8,6 +8,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 import { getErrorMessage } from '../../../lib/errors';
+import { DataTable, DataTableColumn } from '../../../components/ui/table/DataTable';
 
 const EMPTY = { studentId: '', classId: '', termId: '' };
 
@@ -113,56 +114,61 @@ export default function EnrollmentsPage() {
         </form>
       )}
 
-      <div className="card">
-        <select
-          value={termFilter}
-          onChange={(e) => { setTermFilter(e.target.value); load(e.target.value); }}
-          style={{ marginBottom: '1rem', maxWidth: '280px' }}
-        >
-          <option value="">All terms</option>
-          {terms.map((t: any) => (
-            <option key={t.id} value={t.id}>{t.session?.name} - {t.name}</option>
-          ))}
-        </select>
-
-        {loading ? (
-          <p style={{ color: 'var(--muted)' }}>Loading…</p>
-        ) : enrollments.length === 0 && error ? (
+      {enrollments.length === 0 && error && !loading ? (
+        <div className="card">
           <ErrorState description={error} onRetry={() => load(termFilter)} />
-        ) : enrollments.length === 0 ? (
-          <EmptyState
-            icon={UserPlus}
-            title="No enrollments yet"
-            description="Enroll students into classes to begin tracking their academic activity."
-            tone="blue"
-            action={
-              <button className="btn" onClick={() => setShowForm(true)}>
-                <UserPlus size={15} /> Create Enrollment
-              </button>
-            }
-          />
-        ) : (
-          <div className="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Student</th><th>Class</th><th>Term</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {enrollments.map((e: any) => (
-                <tr key={e.id}>
-                  <td>{e.student.firstName} {e.student.lastName}</td>
-                  <td>{e.class.name}</td>
-                  <td>{e.term.session?.name} - {e.term.name}</td>
-                  <td>
-                    <span className={`badge ${e.status === 'ACTIVE' ? 'badge-success' : ''}`}>{e.status}</span>
-                  </td>
-                </tr>
+        </div>
+      ) : (
+        <DataTable<any>
+          rows={enrollments}
+          getRowId={(e) => e.id}
+          loading={loading}
+          searchKeys={(e: any) => `${e.student.firstName} ${e.student.lastName} ${e.class.name}`}
+          searchPlaceholder="Search by student or class…"
+          filters={
+            <select
+              value={termFilter}
+              onChange={(e) => { setTermFilter(e.target.value); load(e.target.value); }}
+              className="dt-select"
+            >
+              <option value="">All terms</option>
+              {terms.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.session?.name} - {t.name}</option>
               ))}
-            </tbody>
-          </table>
-          </div>
-        )}
-      </div>
+            </select>
+          }
+          emptyState={
+            <EmptyState
+              icon={UserPlus}
+              title="No enrollments yet"
+              description="Enroll students into classes to begin tracking their academic activity."
+              tone="blue"
+              action={
+                <button className="btn" onClick={() => setShowForm(true)}>
+                  <UserPlus size={15} /> Create Enrollment
+                </button>
+              }
+            />
+          }
+          columns={[
+            {
+              key: 'student',
+              label: 'Student',
+              cardRole: 'title',
+              sortAccessor: (e: any) => `${e.student.firstName} ${e.student.lastName}`,
+              render: (e: any) => `${e.student.firstName} ${e.student.lastName}`,
+            },
+            { key: 'class', label: 'Class', cardRole: 'subtitle', cardLabel: '', sortAccessor: (e: any) => e.class.name, render: (e: any) => e.class.name },
+            { key: 'term', label: 'Term', render: (e: any) => `${e.term.session?.name || ''} - ${e.term.name}` },
+            {
+              key: 'status',
+              label: 'Status',
+              sortAccessor: (e: any) => e.status,
+              render: (e: any) => <span className={`badge ${e.status === 'ACTIVE' ? 'badge-success' : ''}`}>{e.status}</span>,
+            },
+          ] as DataTableColumn<any>[]}
+        />
+      )}
     </div>
   );
 }

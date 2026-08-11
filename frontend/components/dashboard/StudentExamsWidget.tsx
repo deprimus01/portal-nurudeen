@@ -21,7 +21,7 @@ export function StudentExamsWidget({ studentId, href, title = 'Upcoming exams' }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
     if (!studentId) return;
     setLoading(true);
     setError(null);
@@ -30,7 +30,9 @@ export function StudentExamsWidget({ studentId, href, title = 'Upcoming exams' }
       .then(setExams)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load exams.')))
       .finally(() => setLoading(false));
-  }, [studentId]);
+  }
+
+  useEffect(() => { load(); }, [studentId]);
 
   const upcoming = useMemo(() => {
     const now = Date.now();
@@ -40,7 +42,7 @@ export function StudentExamsWidget({ studentId, href, title = 'Upcoming exams' }
   }, [exams]);
 
   return (
-    <DashboardWidget title={title} icon={FileText} href={href} linkLabel="View exams" loading={loading} error={error}>
+    <DashboardWidget title={title} icon={FileText} href={href} linkLabel="View exams" loading={loading} error={error} onRetry={load}>
       {upcoming.length === 0 ? (
         <EmptyState icon={FileText} title="No upcoming exams" description="Exams scheduled for your current class will appear here." tone="muted" compact />
       ) : (

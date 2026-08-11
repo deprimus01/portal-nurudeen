@@ -29,8 +29,8 @@ export default function GuardianFeesPage() {
     setError(null);
     api.getWithCache<Invoice[]>('/api/fees/invoices')
       .then((res) => {
-        setInvoices(res.data);
-        setCachedAt(res.fromCache ? res.cachedAt : undefined);
+        setInvoices(res?.data ?? []);
+        setCachedAt(res?.fromCache ? res.cachedAt : undefined);
       })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load.')))
       .finally(() => setLoading(false));

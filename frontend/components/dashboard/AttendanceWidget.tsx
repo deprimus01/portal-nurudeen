@@ -36,7 +36,7 @@ export function AttendanceWidget({ studentId, href, title = 'Attendance' }: { st
   const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useState<Range>('30');
 
-  useEffect(() => {
+  function load() {
     if (!studentId) return;
     setLoading(true);
     setError(null);
@@ -45,7 +45,9 @@ export function AttendanceWidget({ studentId, href, title = 'Attendance' }: { st
       .then(setRecords)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load attendance.')))
       .finally(() => setLoading(false));
-  }, [studentId]);
+  }
+
+  useEffect(() => { load(); }, [studentId]);
 
   const filtered = useMemo(() => {
     if (range === 'all') return records;
@@ -98,6 +100,7 @@ export function AttendanceWidget({ studentId, href, title = 'Attendance' }: { st
       linkLabel="View attendance"
       loading={loading}
       error={error}
+      onRetry={load}
       controls={
         <RangeTabs<Range>
           value={range}

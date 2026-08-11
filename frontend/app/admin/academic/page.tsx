@@ -8,6 +8,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 import { getErrorMessage } from '../../../lib/errors';
+import { DataTable, DataTableColumn } from '../../../components/ui/table/DataTable';
 
 export default function AcademicPage() {
   const { t } = useLanguage();
@@ -100,34 +101,35 @@ export default function AcademicPage() {
         )}
         {!loading && sessions.length === 0 && error ? (
           <ErrorState description={error} onRetry={load} />
-        ) : !loading && sessions.length === 0 ? (
-          <EmptyState
-            icon={CalendarRange}
-            title="No academic sessions yet"
-            description="Create a session (e.g. 2025/2026) to start organizing terms and enrollments."
-            tone="navy"
-            action={
-              <button className="btn" onClick={() => setShowSessionForm(true)}>
-                <Plus size={15} /> Add Session
-              </button>
-            }
-          />
         ) : (
-        <div className="table-wrap">
-        <table>
-          <thead><tr><th>Name</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
-          <tbody>
-            {sessions.map((s) => (
-              <tr key={s.id}>
-                <td>{s.name}</td>
-                <td>{new Date(s.startDate).toLocaleDateString()}</td>
-                <td>{new Date(s.endDate).toLocaleDateString()}</td>
-                <td>{s.isCurrent && <span className="badge badge-success">Current</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+          <DataTable<AcademicSession>
+            rows={sessions}
+            getRowId={(s) => s.id}
+            loading={loading}
+            pageSize={8}
+            hideToolbar={sessions.length <= 5}
+            searchKeys={(s) => s.name}
+            searchPlaceholder="Search sessions…"
+            emptyState={
+              <EmptyState
+                icon={CalendarRange}
+                title="No academic sessions yet"
+                description="Create a session (e.g. 2025/2026) to start organizing terms and enrollments."
+                tone="navy"
+                action={
+                  <button className="btn" onClick={() => setShowSessionForm(true)}>
+                    <Plus size={15} /> Add Session
+                  </button>
+                }
+              />
+            }
+            columns={[
+              { key: 'name', label: 'Name', cardRole: 'title', sortAccessor: (s) => s.name, render: (s) => s.name },
+              { key: 'start', label: 'Start', sortAccessor: (s) => s.startDate, render: (s) => new Date(s.startDate).toLocaleDateString() },
+              { key: 'end', label: 'End', sortAccessor: (s) => s.endDate, render: (s) => new Date(s.endDate).toLocaleDateString() },
+              { key: 'status', label: 'Status', cardRole: 'subtitle', cardLabel: '', render: (s) => (s.isCurrent ? <span className="badge badge-success">Current</span> : '—') },
+            ] as DataTableColumn<AcademicSession>[]}
+          />
         )}
       </div>
 
@@ -157,41 +159,42 @@ export default function AcademicPage() {
         )}
         {!loading && terms.length === 0 && error ? (
           <ErrorState description={error} onRetry={load} />
-        ) : !loading && terms.length === 0 ? (
-          <EmptyState
-            icon={CalendarRange}
-            title="No terms yet"
-            description={
-              sessions.length === 0
-                ? 'Create an academic session first, then add its terms here.'
-                : 'Add a term (e.g. First Term) to a session to start scheduling exams and fees.'
-            }
-            tone="navy"
-            action={
-              sessions.length > 0 ? (
-                <button className="btn" onClick={() => setShowTermForm(true)}>
-                  <Plus size={15} /> Add Term
-                </button>
-              ) : undefined
-            }
-          />
         ) : (
-        <div className="table-wrap">
-        <table>
-          <thead><tr><th>Term</th><th>Session</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
-          <tbody>
-            {terms.map((t: any) => (
-              <tr key={t.id}>
-                <td>{t.name}</td>
-                <td>{t.session?.name}</td>
-                <td>{new Date(t.startDate).toLocaleDateString()}</td>
-                <td>{new Date(t.endDate).toLocaleDateString()}</td>
-                <td>{t.isCurrent && <span className="badge badge-success">Current</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+          <DataTable<any>
+            rows={terms}
+            getRowId={(t) => t.id}
+            loading={loading}
+            pageSize={8}
+            hideToolbar={terms.length <= 5}
+            searchKeys={(t: any) => `${t.name} ${t.session?.name || ''}`}
+            searchPlaceholder="Search terms…"
+            emptyState={
+              <EmptyState
+                icon={CalendarRange}
+                title="No terms yet"
+                description={
+                  sessions.length === 0
+                    ? 'Create an academic session first, then add its terms here.'
+                    : 'Add a term (e.g. First Term) to a session to start scheduling exams and fees.'
+                }
+                tone="navy"
+                action={
+                  sessions.length > 0 ? (
+                    <button className="btn" onClick={() => setShowTermForm(true)}>
+                      <Plus size={15} /> Add Term
+                    </button>
+                  ) : undefined
+                }
+              />
+            }
+            columns={[
+              { key: 'name', label: 'Term', cardRole: 'title', sortAccessor: (t: any) => t.name, render: (t: any) => t.name },
+              { key: 'session', label: 'Session', cardRole: 'subtitle', cardLabel: '', sortAccessor: (t: any) => t.session?.name || '', render: (t: any) => t.session?.name },
+              { key: 'start', label: 'Start', sortAccessor: (t: any) => t.startDate, render: (t: any) => new Date(t.startDate).toLocaleDateString() },
+              { key: 'end', label: 'End', sortAccessor: (t: any) => t.endDate, render: (t: any) => new Date(t.endDate).toLocaleDateString() },
+              { key: 'status', label: 'Status', render: (t: any) => (t.isCurrent ? <span className="badge badge-success">Current</span> : '—') },
+            ] as DataTableColumn<any>[]}
+          />
         )}
       </div>
     </div>

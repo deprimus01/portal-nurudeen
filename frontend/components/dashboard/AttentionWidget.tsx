@@ -18,16 +18,20 @@ export function AttentionWidget({ href, title = 'Students requiring attention' }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     api
       .get<FlagsResponse>('/api/ai/flags')
-      .then((res) => setFlags(res.flags))
+      .then((res) => setFlags(res?.flags ?? []))
       .catch((err) => setError(getErrorMessage(err, 'Failed to load flags.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   return (
-    <DashboardWidget title={title} icon={AlertTriangle} href={href} linkLabel="View all" loading={loading} error={error}>
+    <DashboardWidget title={title} icon={AlertTriangle} href={href} linkLabel="View all" loading={loading} error={error} onRetry={load}>
       {flags.length === 0 ? (
         <EmptyState icon={TrendingDown} title="Nothing to flag" description="No notable attendance or performance decline right now." tone="green" compact />
       ) : (

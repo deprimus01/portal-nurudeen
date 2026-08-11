@@ -32,7 +32,9 @@ export function AdminAttendanceWidget({ href, title = 'Attendance overview' }: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     const date = todayISO();
     api
       .get<SchoolClass[]>('/api/classes')
@@ -50,7 +52,9 @@ export function AdminAttendanceWidget({ href, title = 'Attendance overview' }: {
       })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load attendance.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const summary = useMemo(() => {
     const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 } as Record<string, number>;
@@ -80,7 +84,7 @@ export function AdminAttendanceWidget({ href, title = 'Attendance overview' }: {
   const noData = classes.length === 0 || summary.totalStudents === 0;
 
   return (
-    <DashboardWidget title={title} icon={CheckSquare} href={href} linkLabel="Take attendance" loading={loading} error={error}>
+    <DashboardWidget title={title} icon={CheckSquare} href={href} linkLabel="Take attendance" loading={loading} error={error} onRetry={load}>
       {noData ? (
         <EmptyState icon={CheckSquare} title="No attendance marked today" description="Attendance recorded across classes today will summarize here." tone="muted" compact />
       ) : (

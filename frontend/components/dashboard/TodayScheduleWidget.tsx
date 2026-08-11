@@ -30,7 +30,7 @@ export function TodayScheduleWidget({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
     if (source.kind === 'student' && !source.studentId) return;
     setLoading(true);
     setError(null);
@@ -42,6 +42,10 @@ export function TodayScheduleWidget({
       .then(setSlots)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load timetable.')))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source.kind, source.kind === 'student' ? source.studentId : null]);
 
@@ -57,7 +61,7 @@ export function TodayScheduleWidget({
   );
 
   return (
-    <DashboardWidget title={title} icon={CalendarClock} loading={loading} error={error}>
+    <DashboardWidget title={title} icon={CalendarClock} loading={loading} error={error} onRetry={load}>
       {!isSchoolDay ? (
         <EmptyState icon={CalendarClock} title="No school today" description="Enjoy the weekend." tone="muted" compact />
       ) : today.length === 0 ? (

@@ -18,11 +18,13 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { AppNotification, NotificationsFeed, NotificationType } from '../../lib/types';
+import { getErrorMessage } from '../../lib/errors';
+import { ErrorState } from './ErrorState';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const POLL_MS = 45000;
 
-const TYPE_META: Record<NotificationType, { icon: LucideIcon; color: string; bg: string }> = {
+export const TYPE_META: Record<NotificationType, { icon: LucideIcon; color: string; bg: string }> = {
   enrollment: { icon: Layers, color: 'var(--blue)', bg: 'rgba(0, 85, 251, 0.1)' },
   staff: { icon: Briefcase, color: 'var(--navy)', bg: 'rgba(16, 54, 125, 0.1)' },
   announcement: { icon: Megaphone, color: 'var(--gold)', bg: 'rgba(201, 151, 74, 0.14)' },
@@ -34,7 +36,7 @@ const TYPE_META: Record<NotificationType, { icon: LucideIcon; color: string; bg:
   message: { icon: MessageSquare, color: 'var(--blue)', bg: 'rgba(0, 85, 251, 0.1)' },
 };
 
-function timeAgo(iso: string) {
+export function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'just now';
@@ -46,18 +48,22 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-export function NotificationBell() {
+export function NotificationBell({ variant = 'icon' }: { variant?: 'icon' | 'menuItem' }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [feed, setFeed] = useState<NotificationsFeed>({ notifications: [], unreadCount: 0, reminders: [] });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => {
     api
       .get<NotificationsFeed>('/api/notifications?limit=20')
-      .then(setFeed)
-      .catch(() => {})
+      .then((res) => {
+        setFeed(res);
+        setError(null);
+      })
+      .catch((err) => setError(getErrorMessage(err, "Couldn't load notifications.")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -101,20 +107,43 @@ export function NotificationBell() {
   const hasBadge = feed.unreadCount > 0 || feed.reminders.length > 0;
 
   return (
-    <div className="shell-notif-wrap" ref={wrapRef}>
-      <button
-        type="button"
-        className="shell-icon-btn shell-notif-btn"
-        onClick={() => setOpen((o) => !o)}
-        aria-label={hasBadge ? `Notifications (${feed.unreadCount} unread)` : 'Notifications'}
-      >
-        <Bell size={16} />
-        {hasBadge && (
-          <span className="shell-notif-dot">
-            {feed.unreadCount > 0 ? (feed.unreadCount > 9 ? '9+' : feed.unreadCount) : ''}
+    <div className={variant === 'menuItem' ? 'shell-notif-wrap shell-notif-wrap-menu' : 'shell-notif-wrap'} ref={wrapRef}>
+      {variant === 'menuItem' ? (
+        <div
+          role="button"
+          tabIndex={0}
+          className="shell-profile-menu-item shell-profile-menu-toggle"
+          onClick={() => setOpen((o) => !o)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setOpen((o) => !o);
+            }
+          }}
+          aria-label={hasBadge ? `Notifications (${feed.unreadCount} unread)` : 'Notifications'}
+        >
+          <span className="shell-profile-menu-item-label">
+            <Bell size={15} /> Notifications
           </span>
-        )}
-      </button>
+          {feed.unreadCount > 0 && (
+            <span className="shell-profile-menu-badge">{feed.unreadCount > 9 ? '9+' : feed.unreadCount}</span>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="shell-icon-btn shell-notif-btn"
+          onClick={() => setOpen((o) => !o)}
+          aria-label={hasBadge ? `Notifications (${feed.unreadCount} unread)` : 'Notifications'}
+        >
+          <Bell size={16} />
+          {hasBadge && (
+            <span className="shell-notif-dot">
+              {feed.unreadCount > 0 ? (feed.unreadCount > 9 ? '9+' : feed.unreadCount) : ''}
+            </span>
+          )}
+        </button>
+      )}
 
       <AnimatePresence>
         {open && (
@@ -150,6 +179,10 @@ export function NotificationBell() {
               {loading ? (
                 <div style={{ padding: '14px 16px' }}>
                   <div className="skeleton" style={{ height: 60 }} />
+                </div>
+              ) : error && feed.notifications.length === 0 ? (
+                <div style={{ padding: '10px 6px' }}>
+                  <ErrorState description={error} onRetry={load} compact />
                 </div>
               ) : feed.notifications.length === 0 && feed.reminders.length === 0 ? (
                 <div className="shell-notif-empty">

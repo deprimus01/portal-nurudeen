@@ -30,18 +30,22 @@ export function RecentAnnouncementsWidget({ href, limit = 4 }: { href: string; l
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     api
       .get<Announcement[]>('/api/announcements')
       .then(setAnnouncements)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load announcements.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const recent = announcements.slice(0, limit);
 
   return (
-    <DashboardWidget title="Recent announcements" icon={Megaphone} href={href} linkLabel="View all" loading={loading} error={error}>
+    <DashboardWidget title="Recent announcements" icon={Megaphone} href={href} linkLabel="View all" loading={loading} error={error} onRetry={load}>
       {recent.length === 0 ? (
         <EmptyState icon={Megaphone} title="No announcements yet" description="School and class notices will appear here." tone="muted" compact />
       ) : (

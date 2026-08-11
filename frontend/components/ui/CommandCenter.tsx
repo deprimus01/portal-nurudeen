@@ -180,7 +180,14 @@ export function CommandCenter({ isOpen, onClose, actions, secondaryActions = [],
       try {
         const data = await api.get<SearchResponse>(`/api/search?q=${encodeURIComponent(trimmedQuery)}`);
         if (requestIdRef.current !== myRequestId) return;
-        setEntityResults(data.results);
+        // Defensive fallback, same as elsewhere - but doubly important
+        // here: CommandCenter renders inside AppShell itself (the layout,
+        // not the page), and Next.js error.tsx boundaries do NOT catch
+        // errors thrown by the layout in their own segment - only by the
+        // page/children below it. A crash here would bypass even the new
+        // app/admin/error.tsx and go straight to the root boundary,
+        // unmounting the whole app regardless.
+        setEntityResults(data?.results ?? []);
       } catch (err) {
         if (requestIdRef.current !== myRequestId) return;
         setEntityError(getErrorMessage(err, 'Search failed. Try again.'));

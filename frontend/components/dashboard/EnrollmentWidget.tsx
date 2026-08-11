@@ -24,7 +24,9 @@ export function EnrollmentWidget({ href, title = 'Enrollment' }: { href: string;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     api
       .get<Term[]>('/api/academic/terms')
       .then(async (allTerms) => {
@@ -43,7 +45,9 @@ export function EnrollmentWidget({ href, title = 'Enrollment' }: { href: string;
       })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load enrollment data.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const currentTerm = useMemo(() => terms.find((t) => t.isCurrent) || terms[terms.length - 1], [terms]);
 
@@ -71,7 +75,7 @@ export function EnrollmentWidget({ href, title = 'Enrollment' }: { href: string;
   );
 
   return (
-    <DashboardWidget title={title} icon={Layers} href={href} linkLabel="Manage enrollments" loading={loading} error={error}>
+    <DashboardWidget title={title} icon={Layers} href={href} linkLabel="Manage enrollments" loading={loading} error={error} onRetry={load}>
       {classDistribution.length === 0 ? (
         <EmptyState icon={Layers} title="No enrollments yet" description="Enroll students into classes to see activity here." tone="muted" compact />
       ) : (

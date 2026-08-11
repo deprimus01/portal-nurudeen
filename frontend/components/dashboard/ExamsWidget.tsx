@@ -22,13 +22,17 @@ export function ExamsWidget({ href, title = 'Exams' }: { href: string; title?: s
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'Upcoming' | 'Completed' | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     api
       .get<Exam[]>('/api/exams')
       .then(setExams)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load exams.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const classified = useMemo(() => {
     const now = Date.now();
@@ -49,7 +53,7 @@ export function ExamsWidget({ href, title = 'Exams' }: { href: string; title?: s
   const visible = filter ? classified.filter((c) => c.bucket === filter) : classified;
 
   return (
-    <DashboardWidget title={title} icon={FileText} href={href} linkLabel="Manage exams" loading={loading} error={error}>
+    <DashboardWidget title={title} icon={FileText} href={href} linkLabel="Manage exams" loading={loading} error={error} onRetry={load}>
       {exams.length === 0 ? (
         <EmptyState icon={FileText} title="No exams yet" description="Exams you create will show their status here." tone="muted" compact />
       ) : (

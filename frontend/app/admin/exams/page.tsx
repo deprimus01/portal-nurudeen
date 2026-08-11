@@ -9,6 +9,8 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 import { getErrorMessage } from '../../../lib/errors';
+import { DataTable, DataTableColumn } from '../../../components/ui/table/DataTable';
+import type { ActionMenuItem } from '../../../components/ui/table/ActionMenu';
 
 const EMPTY = { name: '', termId: '', classId: '', gradingSchemeId: '' };
 
@@ -23,6 +25,7 @@ export default function ExamsPage() {
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [classFilter, setClassFilter] = useState('ALL');
 
   async function load() {
     setLoading(true);
@@ -57,6 +60,8 @@ export default function ExamsPage() {
       setSubmitting(false);
     }
   }
+
+  const filteredExams = exams.filter((e: any) => classFilter === 'ALL' || e.class?.id === classFilter);
 
   return (
     <div>
@@ -109,52 +114,70 @@ export default function ExamsPage() {
         </form>
       )}
 
-      <div className="card">
-        {loading ? (
-          <p style={{ color: 'var(--muted)' }}>{t('common.loading')}</p>
-        ) : exams.length === 0 && error ? (
+      {exams.length === 0 && error && !loading ? (
+        <div className="card">
           <ErrorState description={error} onRetry={load} />
-        ) : exams.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="No exams yet"
-            description={
-              schemes.length === 0
-                ? 'Set up a grading scheme, then create your first exam.'
-                : 'Create an exam to start recording results for a class and term.'
-            }
-            tone="gold"
-            action={
-              schemes.length > 0 ? (
-                <button className="btn" onClick={() => setShowForm(true)}>
-                  {t('pages.exams.addButton')}
+        </div>
+      ) : (
+        <DataTable<any>
+          rows={filteredExams}
+          getRowId={(e) => e.id}
+          loading={loading}
+          searchKeys={(e: any) => `${e.name} ${e.class?.name || ''} ${e.term?.name || ''}`}
+          searchPlaceholder="Search exams…"
+          filters={
+            <>
+              <button className={`filter-chip${classFilter === 'ALL' ? ' active' : ''}`} onClick={() => setClassFilter('ALL')} type="button">
+                All classes
+              </button>
+              {classes.slice(0, 6).map((c) => (
+                <button key={c.id} className={`filter-chip${classFilter === c.id ? ' active' : ''}`} onClick={() => setClassFilter(c.id)} type="button">
+                  {c.name}
                 </button>
-              ) : (
-                <Link href="/admin/grading-schemes" className="btn">
-                  Go to Grading Schemes
-                </Link>
-              )
-            }
-          />
-        ) : (
-          <div className="table-wrap">
-          <table>
-            <thead><tr><th>Exam</th><th>Class</th><th>Term</th><th>Grading scheme</th><th></th></tr></thead>
-            <tbody>
-              {exams.map((e: any) => (
-                <tr key={e.id}>
-                  <td>{e.name}</td>
-                  <td>{e.class?.name}</td>
-                  <td>{e.term?.session?.name} - {e.term?.name}</td>
-                  <td>{e.gradingScheme?.name}</td>
-                  <td><Link href={`/admin/report-cards?examId=${e.id}`}>Report cards</Link></td>
-                </tr>
               ))}
-            </tbody>
-          </table>
-          </div>
-        )}
-      </div>
+            </>
+          }
+          emptyState={
+            <EmptyState
+              icon={FileText}
+              title={exams.length === 0 ? 'No exams yet' : 'No matching exams'}
+              description={
+                exams.length === 0
+                  ? schemes.length === 0
+                    ? 'Set up a grading scheme, then create your first exam.'
+                    : 'Create an exam to start recording results for a class and term.'
+                  : 'Try a different class filter or search term.'
+              }
+              tone="gold"
+              action={
+                exams.length === 0 ? (
+                  schemes.length > 0 ? (
+                    <button className="btn" onClick={() => setShowForm(true)}>
+                      {t('pages.exams.addButton')}
+                    </button>
+                  ) : (
+                    <Link href="/admin/grading-schemes" className="btn">
+                      Go to Grading Schemes
+                    </Link>
+                  )
+                ) : undefined
+              }
+            />
+          }
+          columns={[
+            { key: 'name', label: 'Exam', cardRole: 'title', sortAccessor: (e: any) => e.name, render: (e: any) => e.name },
+            { key: 'class', label: 'Class', cardRole: 'subtitle', cardLabel: '', sortAccessor: (e: any) => e.class?.name || '', render: (e: any) => e.class?.name },
+            { key: 'term', label: 'Term', sortAccessor: (e: any) => e.term?.name || '', render: (e: any) => `${e.term?.session?.name || ''} - ${e.term?.name || ''}` },
+            { key: 'scheme', label: 'Grading scheme', render: (e: any) => e.gradingScheme?.name || '—' },
+          ] as DataTableColumn<any>[]}
+          actions={(e: any) => {
+            const items: ActionMenuItem[] = [
+              { label: 'View report cards', icon: FileText, href: `/admin/report-cards?examId=${e.id}` },
+            ];
+            return items;
+          }}
+        />
+      )}
     </div>
   );
 }

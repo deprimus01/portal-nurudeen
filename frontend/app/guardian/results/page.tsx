@@ -47,8 +47,8 @@ export default function GuardianResultsPage() {
     setError(null);
     api.getWithCache<ReportCard>(`/api/results/report-card?studentId=${studentId}&examId=${examId}`)
       .then((res) => {
-        setReport(res.data);
-        setCachedAt(res.fromCache ? res.cachedAt : undefined);
+        setReport(res?.data ?? null);
+        setCachedAt(res?.fromCache ? res.cachedAt : undefined);
       })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load report card.')))
       .finally(() => setLoading(false));

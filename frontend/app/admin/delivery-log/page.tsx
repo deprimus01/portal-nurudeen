@@ -7,6 +7,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { useLanguage } from '../../../lib/i18n/language-context';
 import { getErrorMessage } from '../../../lib/errors';
+import { DataTable, DataTableColumn } from '../../../components/ui/table/DataTable';
 
 interface LogEntry {
   id: string;
@@ -46,8 +47,16 @@ export default function DeliveryLogPage() {
     try {
       const qs = status ? `?status=${status}` : '';
       const data = await api.get<{ entries: LogEntry[]; failedCount: number }>(`/api/notifications/log${qs}`);
-      setEntries(data.entries);
-      setFailedCount(data.failedCount);
+      // Explicit Array.isArray check, not `data?.entries ?? []`: arrays
+      // inherit a built-in `.entries` iterator method from
+      // Array.prototype, so if the response is ever a bare array instead
+      // of `{ entries: [...] }`, `data.entries` resolves to that native
+      // method (truthy, so `??` never falls back) instead of undefined.
+      // React then treats the function handed to setEntries as a state
+      // updater and calls it, which throws exactly the crash this fix is
+      // meant to prevent.
+      setEntries(Array.isArray(data?.entries) ? data.entries : []);
+      setFailedCount(typeof data?.failedCount === 'number' ? data.failedCount : 0);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load delivery log.'));
     } finally {
@@ -109,53 +118,64 @@ export default function DeliveryLogPage() {
         ))}
       </div>
 
-      <div className="table-wrap">
-        {loading ? (
-          <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="skeleton" style={{ height: 18, width: `${90 - i * 8}%` }} />
-            ))}
-          </div>
-        ) : entries.length === 0 && error ? (
-          <div style={{ padding: '1rem 0' }}>
-            <ErrorState description={error} onRetry={() => load()} />
-          </div>
-        ) : entries.length === 0 ? (
-          <EmptyState
-            icon={Send}
-            title={filter ? `No ${FILTERS.find((f) => f.value === filter)?.label.toLowerCase()} deliveries` : 'No deliveries yet'}
-            description="Emails and SMS sent for credentials, announcements and messages will be logged here."
-            tone="muted"
-          />
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>When</th><th>Recipient</th><th>Channel</th><th>Status</th><th>Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((e) => (
-                <tr key={e.id}>
-                  <td style={{ fontSize: '0.82rem', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-                    {new Date(e.sentAt).toLocaleString()}
-                  </td>
-                  <td style={{ fontSize: '0.85rem' }}>{e.recipientType} · <span className="mono">{e.recipientId.slice(0, 8)}…</span></td>
-                  <td>{e.channel}</td>
-                  <td>
-                    <span className={`badge ${e.status === 'SENT' ? 'badge-success' : e.status === 'FAILED' ? 'badge-danger' : ''}`}>
-                      {e.status}
-                    </span>
-                  </td>
-                  <td style={{ fontSize: '0.82rem', color: 'var(--muted)', maxWidth: 360 }}>
-                    {e.status === 'FAILED' ? e.errorDetail || e.message : e.message}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {entries.length === 0 && error && !loading ? (
+        <div className="table-wrap">
+          <ErrorState description={error} onRetry={() => load()} />
+        </div>
+      ) : (
+        <DataTable<LogEntry>
+          rows={entries}
+          getRowId={(e) => e.id}
+          loading={loading}
+          searchKeys={(e) => `${e.recipientType} ${e.recipientId} ${e.channel} ${e.status} ${e.message}`}
+          searchPlaceholder="Search deliveries…"
+          emptyState={
+            <EmptyState
+              icon={Send}
+              title={filter ? `No ${FILTERS.find((f) => f.value === filter)?.label.toLowerCase()} deliveries` : 'No deliveries yet'}
+              description="Emails and SMS sent for credentials, announcements and messages will be logged here."
+              tone="muted"
+            />
+          }
+          columns={[
+            {
+              key: 'when',
+              label: 'When',
+              cardRole: 'subtitle',
+              cardLabel: '',
+              sortAccessor: (e) => e.sentAt,
+              render: (e) => <span style={{ fontSize: '0.82rem', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{new Date(e.sentAt).toLocaleString()}</span>,
+            },
+            {
+              key: 'recipient',
+              label: 'Recipient',
+              cardRole: 'title',
+              sortAccessor: (e) => e.recipientType,
+              render: (e) => <span style={{ fontSize: '0.85rem' }}>{e.recipientType} · <span className="mono">{e.recipientId.slice(0, 8)}…</span></span>,
+            },
+            { key: 'channel', label: 'Channel', sortAccessor: (e) => e.channel, render: (e) => e.channel },
+            {
+              key: 'status',
+              label: 'Status',
+              sortAccessor: (e) => e.status,
+              render: (e) => (
+                <span className={`badge ${e.status === 'SENT' ? 'badge-success' : e.status === 'FAILED' ? 'badge-danger' : ''}`}>
+                  {e.status}
+                </span>
+              ),
+            },
+            {
+              key: 'detail',
+              label: 'Detail',
+              render: (e) => (
+                <span style={{ fontSize: '0.82rem', color: 'var(--muted)', maxWidth: 360, display: 'inline-block' }}>
+                  {e.status === 'FAILED' ? e.errorDetail || e.message : e.message}
+                </span>
+              ),
+            },
+          ] as DataTableColumn<LogEntry>[]}
+        />
+      )}
     </div>
   );
 }

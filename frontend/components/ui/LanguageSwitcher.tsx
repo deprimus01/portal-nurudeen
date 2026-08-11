@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Languages } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n/language-context';
@@ -9,9 +9,35 @@ import { LOCALES, LOCALE_LABELS } from '../../lib/i18n/translations';
 export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   const { locale, setLocale } = useLanguage();
   const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click/Escape via a scoped listener (matches ActionMenu's
+  // pattern) instead of a full-screen backdrop div. A `position: fixed;
+  // inset: 0` backdrop sits on top of the *entire* page while open, so any
+  // click meant for another button - anywhere on the page - just gets
+  // absorbed closing this menu instead of reaching its real target. Since
+  // this component renders on both the login page and every role's
+  // Settings page, that made the whole page look frozen until refresh.
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
   return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
+    <div style={{ position: 'relative', flexShrink: 0 }} ref={wrapRef}>
       <button
         type="button"
         className="shell-icon-btn"
@@ -26,10 +52,6 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
       <AnimatePresence>
         {open && (
           <>
-            <div
-              style={{ position: 'fixed', inset: 0, zIndex: 40 }}
-              onClick={() => setOpen(false)}
-            />
             <motion.div
               className="shell-profile-menu"
               style={{ right: 0, width: 160, zIndex: 41 }}

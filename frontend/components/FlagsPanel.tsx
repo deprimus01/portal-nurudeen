@@ -34,8 +34,12 @@ export function FlagsPanel({ showClassFilter }: { showClassFilter: boolean }) {
     api
       .get<FlagsResponse>(`/api/ai/flags${qs}`)
       .then((res) => {
-        setFlags(res.flags);
-        setNote(res.note);
+        // Same defensive-fallback fix applied elsewhere: an unexpected
+        // response shape must not leave `flags` undefined, or the
+        // `flags.length` check below throws and (per app/admin/error.tsx)
+        // takes the whole sidebar down with it.
+        setFlags(res?.flags ?? []);
+        setNote(res?.note ?? null);
       })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load flags.')))
       .finally(() => setLoading(false));

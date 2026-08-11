@@ -18,13 +18,17 @@ export function MessagesWidget({ href, title = 'Messages' }: { href: string; tit
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     api
       .get<Conversation[]>('/api/messages/conversations')
       .then(setConversations)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load messages.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const sorted = useMemo(
     () => [...conversations].sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()),
@@ -33,7 +37,7 @@ export function MessagesWidget({ href, title = 'Messages' }: { href: string; tit
   const unreadTotal = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
   return (
-    <DashboardWidget title={title} icon={MessageSquare} href={href} linkLabel="Open messages" loading={loading} error={error}>
+    <DashboardWidget title={title} icon={MessageSquare} href={href} linkLabel="Open messages" loading={loading} error={error} onRetry={load}>
       {sorted.length === 0 ? (
         <EmptyState icon={MessageSquare} title="No conversations yet" description="Messages with teachers and the school will appear here." tone="muted" compact />
       ) : (

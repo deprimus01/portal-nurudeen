@@ -27,13 +27,17 @@ export function FeesWidget({ href, title = 'Fees' }: { href: string; title?: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(null);
     api
       .get<Invoice[]>('/api/fees/invoices')
       .then(setInvoices)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load fees.')))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const summary = useMemo(() => {
     let invoiced = 0;
@@ -58,7 +62,7 @@ export function FeesWidget({ href, title = 'Fees' }: { href: string; title?: str
   ];
 
   return (
-    <DashboardWidget title={title} icon={Wallet} href={href} linkLabel="View fees" loading={loading} error={error}>
+    <DashboardWidget title={title} icon={Wallet} href={href} linkLabel="View fees" loading={loading} error={error} onRetry={load}>
       {invoices.length === 0 ? (
         <EmptyState icon={Wallet} title="No invoices yet" description="Generated invoices will be summarized here." tone="muted" compact />
       ) : (

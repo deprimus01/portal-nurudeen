@@ -49,8 +49,8 @@ export function AnnouncementsBoard({ role }: AnnouncementsBoardProps) {
     setLoading(true);
     try {
       const res = await api.getWithCache<Announcement[]>('/api/announcements');
-      setAnnouncements(res.data);
-      setCachedAt(res.fromCache ? res.cachedAt : undefined);
+      setAnnouncements(res?.data ?? []);
+      setCachedAt(res?.fromCache ? res.cachedAt : undefined);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load announcements.'));
     } finally {

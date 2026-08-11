@@ -6,22 +6,22 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChevronDown,
-  Command,
   LogOut,
   LucideIcon,
   Menu,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
   Settings,
   X,
 } from 'lucide-react';
-import { ThemeToggle } from './ThemeToggle';
-import { LanguageSwitcher } from './LanguageSwitcher';
 import { NotificationBell } from './NotificationBell';
 import { PageTransition } from './PageTransition';
 import { CommandCenter } from './CommandCenter';
+import { Toggle } from './Toggle';
 import { useLanguage } from '../../lib/i18n/language-context';
+import { useTheme } from '../../lib/theme-context';
 import { CommandCenterProvider, useCommandCenter } from '../../lib/command-center-context';
 import type { CommandAction } from '../../lib/commandActions';
 
@@ -83,6 +83,8 @@ function AppShellBody({
 }: AppShellProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === 'dark';
   const { isOpen: cmdkOpen, open: openCmdk, close: closeCmdk } = useCommandCenter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -260,13 +262,10 @@ function AppShellBody({
                 aria-label="Open command center"
                 title="Command center (⌘K)"
               >
-                <Command size={16} />
+                <Search size={16} />
               </button>
             )}
             <div className="shell-date">{dateStr}</div>
-            <LanguageSwitcher compact />
-            <ThemeToggle compact />
-            <NotificationBell />
             <div className="shell-profile-wrap">
               <button
                 type="button"
@@ -295,6 +294,13 @@ function AppShellBody({
                         <div className="pname">{userName}</div>
                         {userEmail && <div className="prole">{userEmail}</div>}
                       </div>
+                    </div>
+                    <NotificationBell variant="menuItem" />
+                    <div className="shell-profile-menu-item shell-profile-menu-toggle">
+                      <span className="shell-profile-menu-item-label">
+                        <Moon size={15} /> Dark mode
+                      </span>
+                      <Toggle checked={isDark} onChange={(next) => setTheme(next ? 'dark' : 'light')} label="Dark mode" />
                     </div>
                     {settingsHref ? (
                       <Link

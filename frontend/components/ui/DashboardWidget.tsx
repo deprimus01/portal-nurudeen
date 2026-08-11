@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, LucideIcon } from 'lucide-react';
 import { ReactNode, useId } from 'react';
+import { ErrorState } from './ErrorState';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -16,10 +17,12 @@ interface DashboardWidgetProps {
   controls?: ReactNode;
   loading?: boolean;
   error?: string | null;
+  /** Re-runs the widget's own fetch, if it exposes one. Shows a "Try Again" button when provided. */
+  onRetry?: () => void;
   children: ReactNode;
 }
 
-export function DashboardWidget({ title, icon: Icon, href, linkLabel = 'View details', controls, loading, error, children }: DashboardWidgetProps) {
+export function DashboardWidget({ title, icon: Icon, href, linkLabel = 'View details', controls, loading, error, onRetry, children }: DashboardWidgetProps) {
   return (
     <div className="panel dash-widget">
       <div className="panel-head dash-widget-head">
@@ -31,7 +34,7 @@ export function DashboardWidget({ title, icon: Icon, href, linkLabel = 'View det
       </div>
 
       {error ? (
-        <p className="error-text" style={{ fontSize: '0.85rem' }}>{error}</p>
+        <ErrorState description={error} onRetry={onRetry} compact />
       ) : loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div className="skeleton" style={{ height: 120 }} />

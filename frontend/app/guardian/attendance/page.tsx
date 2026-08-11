@@ -31,8 +31,8 @@ export default function GuardianAttendancePage() {
     setError(null);
     api.getWithCache<AttendanceRecord[]>(`/api/attendance/student/${studentId}`)
       .then((res) => {
-        setRecords(res.data);
-        setCachedAt(res.fromCache ? res.cachedAt : undefined);
+        setRecords(res?.data ?? []);
+        setCachedAt(res?.fromCache ? res.cachedAt : undefined);
       })
       .catch((err) => setError(getErrorMessage(err, 'Failed to load.')))
       .finally(() => setLoading(false));

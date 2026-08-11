@@ -890,6 +890,18 @@ tbody tr:last-child td {
 .shell-profile-menu-item.danger {
   color: var(--danger);
 }
+.shell-profile-menu-toggle {
+  cursor: default;
+  justify-content: space-between;
+}
+.shell-profile-menu-toggle:hover {
+  background: transparent;
+}
+.shell-profile-menu-item-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
 .shell-profile-menu-item.disabled {
   color: var(--muted-2);
   cursor: not-allowed;
@@ -899,8 +911,33 @@ tbody tr:last-child td {
 }
 
 /* Notification bell + dropdown panel */
-.shell-notif-wrap {
+.shell-profile-menu-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.shell-notif-wrap-menu {
   position: relative;
+}
+.shell-notif-wrap-menu .shell-notif-panel {
+  z-index: 65;
+}
+@media (min-width: 481px) {
+  .shell-notif-wrap-menu .shell-notif-panel {
+    top: calc(100% + 8px);
+    right: -8px;
+  }
 }
 .shell-notif-btn {
   position: relative;
@@ -1516,7 +1553,9 @@ tbody tr:last-child td {
   max-width: 380px;
 }
 .settings-password-submit {
-  width: auto;
+  width: 100%;
+  height: 50px;
+  border-radius: 16px;
   padding: 0 20px;
 }
 
@@ -1545,12 +1584,22 @@ tbody tr:last-child td {
   align-items: center;
   gap: 10px;
 }
+.settings-contact-actions .settings-password-submit {
+  /* Primary action shares the row with Cancel, so it takes the
+     remaining space instead of the full row width used when this
+     class appears alone (Update password). */
+  width: auto;
+  flex: 1;
+}
 .settings-cancel-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  width: auto;
-  padding: 0 16px;
+  height: 50px;
+  border-radius: 16px;
+  padding: 0 18px;
+  flex-shrink: 0;
 }
 
 .settings-pref-intro {

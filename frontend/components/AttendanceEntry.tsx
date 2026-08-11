@@ -83,8 +83,8 @@ export function AttendanceEntry({
       const res = await api.getWithCache<{ roster: RosterEntry[] }>(
         `/api/attendance/roster?classId=${classId}&date=${date}`,
       );
-      setRoster(res.data.roster);
-      setFromCache(res.fromCache);
+      setRoster(res?.data?.roster ?? []);
+      setFromCache(res?.fromCache ?? false);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load roster.'));
       setRoster([]);

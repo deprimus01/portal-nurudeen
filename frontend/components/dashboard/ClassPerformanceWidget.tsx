@@ -39,16 +39,18 @@ export function ClassPerformanceWidget({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
     if (!examId || !subjectId) return;
     setLoading(true);
     setError(null);
     api
       .get<{ roster: RosterEntry[] }>(`/api/results/roster?examId=${examId}&subjectId=${subjectId}`)
-      .then((data) => setRoster(data.roster))
+      .then((data) => setRoster(data?.roster ?? []))
       .catch((err) => setError(getErrorMessage(err, 'Failed to load roster.')))
       .finally(() => setLoading(false));
-  }, [examId, subjectId]);
+  }
+
+  useEffect(() => { load(); }, [examId, subjectId]);
 
   const scored = useMemo(() => roster.filter((r) => r.score !== null) as (RosterEntry & { score: number })[], [roster]);
   const average = scored.length > 0 ? scored.reduce((sum, r) => sum + r.score, 0) / scored.length : null;
@@ -72,6 +74,7 @@ export function ClassPerformanceWidget({
       linkLabel="Enter results"
       loading={loading}
       error={error}
+      onRetry={load}
       controls={
         <div style={{ display: 'flex', gap: 6 }}>
           <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} aria-label="Select subject">
