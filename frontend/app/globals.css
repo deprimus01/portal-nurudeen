@@ -586,6 +586,13 @@ tbody tr:last-child td {
   background: rgba(8, 13, 26, 0.55);
   z-index: 90;
   backdrop-filter: blur(2px);
+  /* Fail-safe default: if this node is ever left mounted after it should
+     have unmounted (e.g. an interrupted exit animation), it must not be
+     able to intercept clicks meant for the rest of the app. Framer Motion
+     sets an inline pointer-events override while the drawer is genuinely
+     open/closing; this class-level default is what protects us if that
+     inline override is ever missing. */
+  pointer-events: none;
 }
 .shell-sidebar-mobile {
   position: fixed;
@@ -596,6 +603,7 @@ tbody tr:last-child td {
   height: 100dvh;
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
   z-index: 95;
+  pointer-events: none;
 }
 .shell-mobile-close {
   display: none;
@@ -1946,6 +1954,11 @@ tbody tr:last-child td {
   background: rgba(8, 13, 26, 0.5);
   backdrop-filter: blur(4px);
   z-index: 200;
+  /* Fail-safe default - see .shell-backdrop above. This one matters even
+     more: it has no responsive media query hiding it, so an orphaned
+     node here would block clicks across the entire app at every
+     viewport width. Framer Motion overrides this inline while open. */
+  pointer-events: none;
 }
 .cmdk-panel {
   position: fixed;
@@ -1963,6 +1976,7 @@ tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  pointer-events: none;
 }
 .cmdk-search {
   display: flex;

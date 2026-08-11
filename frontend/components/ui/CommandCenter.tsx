@@ -33,6 +33,10 @@ interface CommandCenterProps {
   actions: CommandAction[];
   secondaryActions?: CommandAction[];
   roleLabel: string;
+  /** Called once the close animation has actually finished removing the
+   *  backdrop/panel from the DOM - lets the provider safely apply a
+   *  reopen that was requested mid-exit. Optional/no-op if omitted. */
+  onExitComplete?: () => void;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -65,7 +69,14 @@ function matches(action: CommandAction, query: string) {
 // action or a live entity search result, in the same order they render.
 type FlatEntry = { kind: 'action'; action: CommandAction } | { kind: 'entity'; item: SearchResultItem };
 
-export function CommandCenter({ isOpen, onClose, actions, secondaryActions = [], roleLabel }: CommandCenterProps) {
+export function CommandCenter({
+  isOpen,
+  onClose,
+  actions,
+  secondaryActions = [],
+  roleLabel,
+  onExitComplete,
+}: CommandCenterProps) {
   const router = useRouter();
   const { user } = useAuth();
   const [query, setQuery] = useState('');
@@ -209,9 +220,19 @@ export function CommandCenter({ isOpen, onClose, actions, secondaryActions = [],
   }
 
   function goToEntity(item: SearchResultItem) {
-    if (!user?.role) return;
+    // Both early-return cases below previously left the palette open with
+    // no feedback on click - the click did nothing, but isOpen stayed
+    // true. Every exit path here now closes the palette, whether or not
+    // the click could actually be resolved to a destination.
+    if (!user?.role) {
+      onClose();
+      return;
+    }
     const href = searchResultHref(item, user.role);
-    if (!href) return;
+    if (!href) {
+      onClose();
+      return;
+    }
     addRecent(trimmedQuery);
     onClose();
     router.push(href);
@@ -257,14 +278,14 @@ export function CommandCenter({ isOpen, onClose, actions, secondaryActions = [],
   const actionBaseIndex = isSearching ? entityResults.length : 0;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={onExitComplete}>
       {isOpen && (
         <>
           <motion.div
             className="cmdk-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, pointerEvents: 'none' }}
+            animate={{ opacity: 1, pointerEvents: 'auto' }}
+            exit={{ opacity: 0, pointerEvents: 'none' }}
             transition={{ duration: 0.16 }}
             onClick={onClose}
           />
@@ -273,9 +294,9 @@ export function CommandCenter({ isOpen, onClose, actions, secondaryActions = [],
             role="dialog"
             aria-modal="true"
             aria-label="Search and command center"
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            initial={{ opacity: 0, y: 16, scale: 0.98, pointerEvents: 'none' }}
+            animate={{ opacity: 1, y: 0, scale: 1, pointerEvents: 'auto' }}
+            exit={{ opacity: 0, y: 16, scale: 0.98, pointerEvents: 'none' }}
             transition={{ duration: 0.18, ease: EASE }}
             onKeyDown={handleKeyDown}
           >

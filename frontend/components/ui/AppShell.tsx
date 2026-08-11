@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -85,11 +85,43 @@ function AppShellBody({
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const isDark = theme === 'dark';
-  const { isOpen: cmdkOpen, open: openCmdk, close: closeCmdk } = useCommandCenter();
+  const { isOpen: cmdkOpen, open: openCmdk, close: closeCmdk, onExitComplete: cmdkExitComplete } = useCommandCenter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [dateStr, setDateStr] = useState('');
+  const profileWrapRef = useRef<HTMLDivElement>(null);
+
+  // Same interrupted-exit race as the command center (see
+  // command-center-context.tsx) applies to this drawer's own
+  // AnimatePresence: if it's reopened while its backdrop/panel are still
+  // animating out, the exit and a fresh enter can overlap and leave a
+  // stale node mounted. Guard it the same way.
+  const mobileClosingRef = useRef(false);
+  const mobilePendingOpenRef = useRef(false);
+
+  const openMobileSidebar = useCallback(() => {
+    if (mobileClosingRef.current) {
+      mobilePendingOpenRef.current = true;
+      return;
+    }
+    setMobileOpen(true);
+  }, []);
+
+  const closeMobileSidebar = useCallback(() => {
+    setMobileOpen((prev) => {
+      if (prev) mobileClosingRef.current = true;
+      return false;
+    });
+  }, []);
+
+  const handleMobileExitComplete = useCallback(() => {
+    mobileClosingRef.current = false;
+    if (mobilePendingOpenRef.current) {
+      mobilePendingOpenRef.current = false;
+      setMobileOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     setDateStr(
@@ -98,9 +130,37 @@ function AppShellBody({
   }, []);
 
   useEffect(() => {
-    setMobileOpen(false);
+    closeMobileSidebar();
     setProfileOpen(false);
-  }, [pathname]);
+    // goToAction/goToEntity already call closeCmdk() before navigating,
+    // but browser back/forward and any other route change that doesn't
+    // go through those two functions wouldn't otherwise close the
+    // palette - leaving cmdkOpen (and its backdrop) mounted on a page
+    // the user never explicitly closed it on.
+    closeCmdk();
+  }, [pathname, closeMobileSidebar, closeCmdk]);
+
+  // Profile menu was the one dropdown in the app without outside-click
+  // handling (LanguageSwitcher, ActionMenu, and NotificationBell all do
+  // this already) - it only closed on route change, so it could be left
+  // open indefinitely by any click elsewhere on the page.
+  useEffect(() => {
+    if (!profileOpen) return;
+    function onDocClick(e: MouseEvent) {
+      if (profileWrapRef.current && !profileWrapRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setProfileOpen(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [profileOpen]);
 
   useEffect(() => {
     if (commandActions.length === 0) return;
@@ -197,24 +257,24 @@ function AppShellBody({
       <aside className={`shell-sidebar${collapsed ? ' collapsed' : ''}`}>{renderSidebarContent('desktop')}</aside>
 
       {/* Mobile drawer */}
-      <AnimatePresence>
+      <AnimatePresence onExitComplete={handleMobileExitComplete}>
         {mobileOpen && (
           <>
             <motion.div
               className="shell-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileOpen(false)}
+              initial={{ opacity: 0, pointerEvents: 'none' }}
+              animate={{ opacity: 1, pointerEvents: 'auto' }}
+              exit={{ opacity: 0, pointerEvents: 'none' }}
+              onClick={() => closeMobileSidebar()}
             />
             <motion.aside
               className="shell-sidebar shell-sidebar-mobile"
-              initial={{ x: -300 }}
-              animate={{ x: 0 }}
-              exit={{ x: -300 }}
+              initial={{ x: -300, pointerEvents: 'none' }}
+              animate={{ x: 0, pointerEvents: 'auto' }}
+              exit={{ x: -300, pointerEvents: 'none' }}
               transition={{ duration: 0.32, ease: EASE }}
             >
-              <button className="shell-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+              <button className="shell-mobile-close" onClick={() => closeMobileSidebar()} aria-label="Close menu">
                 <X size={18} />
               </button>
               {renderSidebarContent('mobile')}
@@ -228,7 +288,7 @@ function AppShellBody({
           <button
             type="button"
             className="shell-hamburger"
-            onClick={() => setMobileOpen(true)}
+            onClick={() => openMobileSidebar()}
             aria-label="Open menu"
           >
             <Menu size={19} />
@@ -266,7 +326,7 @@ function AppShellBody({
               </button>
             )}
             <div className="shell-date">{dateStr}</div>
-            <div className="shell-profile-wrap">
+            <div className="shell-profile-wrap" ref={profileWrapRef}>
               <button
                 type="button"
                 className="shell-profile-chip"
@@ -342,7 +402,7 @@ function AppShellBody({
                 </Link>
               );
             })}
-            <button type="button" className="shell-bottom-item" onClick={() => setMobileOpen(true)}>
+            <button type="button" className="shell-bottom-item" onClick={() => openMobileSidebar()}>
               <Menu size={19} />
               <span>More</span>
             </button>
@@ -357,6 +417,7 @@ function AppShellBody({
           actions={commandActions}
           secondaryActions={commandSecondaryActions}
           roleLabel={roleLabel}
+          onExitComplete={cmdkExitComplete}
         />
       )}
     </div>
