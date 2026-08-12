@@ -1,12 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   Award,
   Briefcase,
-  ClipboardList,
-  Clock,
   LayoutDashboard,
   Layers,
   Users,
@@ -14,9 +11,7 @@ import {
 import { api } from '../../lib/api';
 import type { Student, Staff, SchoolClass, Guardian } from '../../lib/types';
 import { StatCard } from '../../components/ui/StatCard';
-import { QuickActionsHub } from '../../components/ui/QuickActionsHub';
 import { WelcomeCard } from '../../components/ui/WelcomeCard';
-import { buildAdminActions, buildAdminSecondaryActions } from '../../lib/commandActions';
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { FeesWidget } from '../../components/dashboard/FeesWidget';
@@ -24,7 +19,7 @@ import { EnrollmentWidget } from '../../components/dashboard/EnrollmentWidget';
 import { ExamsWidget } from '../../components/dashboard/ExamsWidget';
 import { AdminAttendanceWidget } from '../../components/dashboard/AdminAttendanceWidget';
 import { RecentAnnouncementsWidget } from '../../components/dashboard/RecentAnnouncementsWidget';
-import { ActivityFeedWidget } from '../../components/dashboard/ActivityFeedWidget';
+import { OnboardingSetup } from '../../components/dashboard/OnboardingSetup';
 
 interface Subject {
   id: string;
@@ -66,7 +61,7 @@ export default function AdminDashboardPage() {
     <div>
       <WelcomeCard
         name={profile?.firstName || t('role.admin')}
-        subtitle="Your school-wide command center — enrollment, attendance, fees and activity at a glance."
+        subtitle="Your school-wide command center — enrollment, attendance, and fees at a glance."
         icon={LayoutDashboard}
       />
 
@@ -85,47 +80,9 @@ export default function AdminDashboardPage() {
         <FeesWidget href="/admin/fees" />
       </div>
 
-      <div className="grid-2">
-        <ActivityFeedWidget />
-        <RecentAnnouncementsWidget href="/admin/announcements" />
-      </div>
+      <RecentAnnouncementsWidget href="/admin/announcements" />
 
-      <QuickActionsHub primary={buildAdminActions()} secondary={buildAdminSecondaryActions()} />
-
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Getting started</h3>
-        </div>
-        <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginTop: 0 }}>
-          Set up the school year first, then classes and subjects, before enrolling students:
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {[
-            { href: '/admin/academic', icon: Clock, text: 'Create an academic session and term' },
-            { href: '/admin/classes', icon: Layers, text: 'Create your classes (Nursery 1 → SSS3)' },
-            { href: '/admin/subjects', icon: Award, text: 'Create subjects' },
-            { href: '/admin/staff', icon: Briefcase, text: 'Add staff and assign them to classes/subjects' },
-            {
-              href: '/admin/students',
-              icon: ClipboardList,
-              text: 'Enroll students - guardian portal accounts are created automatically',
-            },
-          ].map((step, i) => {
-            const Icon = step.icon;
-            return (
-              <Link key={step.href} href={step.href} className="today-item" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="today-icon c-blue" style={{ background: 'rgba(0,85,251,0.1)', color: 'var(--blue)' }}>
-                  <Icon size={16} />
-                </div>
-                <div className="ti-text">
-                  <div className="ti-title">{step.text}</div>
-                </div>
-                <div className="ti-time mono">{i + 1}</div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
+      <OnboardingSetup />
     </div>
   );
 }

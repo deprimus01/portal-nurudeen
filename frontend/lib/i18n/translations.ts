@@ -130,6 +130,8 @@ export interface Dictionary {
     studentFlags: string;
     aiReports: string;
     results: string;
+    insights: string;
+    activity: string;
   };
   role: {
     admin: string;
@@ -303,6 +305,8 @@ const en: Dictionary = {
     studentFlags: 'Student Flags',
     aiReports: 'AI Reports',
     results: 'Results',
+    insights: 'Insights',
+    activity: 'Activity',
   },
   role: {
     admin: 'Administrator',
@@ -478,6 +482,8 @@ const ha: Dictionary = {
     studentFlags: 'Fadakarwa kan Dalibi',
     aiReports: 'Rahoton AI',
     results: 'Sakamako',
+    insights: 'Bayani',
+    activity: 'Ayyuka',
   },
   role: {
     admin: 'Mai Kulawa',
@@ -653,6 +659,8 @@ const yo: Dictionary = {
     studentFlags: 'Ìkìlọ̀ Akẹ́kọ̀ọ́',
     aiReports: 'Ìjábọ̀ AI',
     results: 'Àbájáde',
+    insights: 'Ìròyìn',
+    activity: 'Ìgbòkègbodò',
   },
   role: {
     admin: 'Alákóso',

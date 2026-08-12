@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  Activity,
   Award,
   BarChart3,
   Briefcase,
@@ -79,6 +80,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           { href: '/admin/flags', label: t('nav.studentFlags'), icon: TrendingDown },
           { href: '/admin/ai-reports', label: t('nav.aiReports'), icon: Sparkles },
         ],
+      },
+      {
+        label: t('nav.insights'),
+        items: [{ href: '/admin/activity', label: t('nav.activity'), icon: Activity }],
       },
     ],
     [t],
