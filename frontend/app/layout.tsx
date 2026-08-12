@@ -19,7 +19,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#10367D',
+  // Matches .shell-sidebar's background so the browser chrome / PWA status
+  // bar reads as a seamless continuation of the app's nav color.
+  themeColor: '#0A1852',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

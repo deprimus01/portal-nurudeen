@@ -23,6 +23,16 @@ export default function AcademicPage() {
   const [showTermForm, setShowTermForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // yyyy-mm-dd for a date input's value/min/max, from either an ISO string
+  // (session/term dates from the API) or a plain input value already in
+  // that shape.
+  function toDateInput(value: string) {
+    if (!value) return '';
+    return value.length >= 10 ? value.slice(0, 10) : value;
+  }
+
+  const selectedSession = sessions.find((s) => s.id === termForm.sessionId);
+
   async function load() {
     setLoading(true);
     try {
@@ -59,8 +69,20 @@ export default function AcademicPage() {
 
   async function handleTermSubmit(e: FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+
+    if (selectedSession) {
+      const sessionStart = toDateInput(selectedSession.startDate);
+      const sessionEnd = toDateInput(selectedSession.endDate);
+      if (termForm.startDate < sessionStart || termForm.endDate > sessionEnd) {
+        setError(
+          `Term dates must fall within ${selectedSession.name}'s dates (${sessionStart} to ${sessionEnd}).`,
+        );
+        return;
+      }
+    }
+
+    setSubmitting(true);
     try {
       await api.post('/api/academic/terms', termForm);
       setTermForm({ name: '', sessionId: '', startDate: '', endDate: '', isCurrent: false });
@@ -142,13 +164,31 @@ export default function AcademicPage() {
         </div>
         {showTermForm && (
           <form onSubmit={handleTermSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.6rem', marginBottom: '1rem' }}>
-            <select required value={termForm.sessionId} onChange={(e) => setTermForm({ ...termForm, sessionId: e.target.value })}>
+            <select
+              required
+              value={termForm.sessionId}
+              onChange={(e) => setTermForm({ ...termForm, sessionId: e.target.value, startDate: '', endDate: '' })}
+            >
               <option value="" disabled>Session…</option>
               {sessions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <input placeholder="e.g. First Term" required value={termForm.name} onChange={(e) => setTermForm({ ...termForm, name: e.target.value })} />
-            <input type="date" required value={termForm.startDate} onChange={(e) => setTermForm({ ...termForm, startDate: e.target.value })} />
-            <input type="date" required value={termForm.endDate} onChange={(e) => setTermForm({ ...termForm, endDate: e.target.value })} />
+            <input
+              type="date"
+              required
+              value={termForm.startDate}
+              min={selectedSession ? toDateInput(selectedSession.startDate) : undefined}
+              max={selectedSession ? toDateInput(selectedSession.endDate) : undefined}
+              onChange={(e) => setTermForm({ ...termForm, startDate: e.target.value })}
+            />
+            <input
+              type="date"
+              required
+              value={termForm.endDate}
+              min={selectedSession ? toDateInput(selectedSession.startDate) : undefined}
+              max={selectedSession ? toDateInput(selectedSession.endDate) : undefined}
+              onChange={(e) => setTermForm({ ...termForm, endDate: e.target.value })}
+            />
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
               <input type="checkbox" checked={termForm.isCurrent} onChange={(e) => setTermForm({ ...termForm, isCurrent: e.target.checked })} />
               Current term

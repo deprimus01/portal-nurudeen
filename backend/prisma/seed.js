@@ -86,6 +86,33 @@ async function main() {
     });
     console.log('Created default grading scheme: Standard Secondary');
   }
+
+  // Nigerian university 5-point CGPA grading (A=5.0 ... F=0.0) - the scale
+  // used by NUC-accredited universities (UNILAG, UI, OAU, ABU, etc.). GPA
+  // points aren't stored as their own column (GradingBand only has
+  // grade/remark), so they're folded into the remark text instead.
+  const existingUniScheme = await prisma.gradingScheme.findUnique({
+    where: { name: 'Nigerian University (5-Point CGPA)' },
+  });
+  if (!existingUniScheme) {
+    await prisma.gradingScheme.create({
+      data: {
+        name: 'Nigerian University (5-Point CGPA)',
+        description: 'Standard Nigerian university grading scale, as used for CGPA calculation.',
+        bands: {
+          create: [
+            { minScore: 70, maxScore: 100, grade: 'A', remark: 'Excellent (5.0)' },
+            { minScore: 60, maxScore: 69, grade: 'B', remark: 'Very Good (4.0)' },
+            { minScore: 50, maxScore: 59, grade: 'C', remark: 'Good (3.0)' },
+            { minScore: 45, maxScore: 49, grade: 'D', remark: 'Fair (2.0)' },
+            { minScore: 40, maxScore: 44, grade: 'E', remark: 'Pass (1.0)' },
+            { minScore: 0, maxScore: 39, grade: 'F', remark: 'Fail (0.0)' },
+          ],
+        },
+      },
+    });
+    console.log('Created default grading scheme: Nigerian University (5-Point CGPA)');
+  }
 }
 
 main()

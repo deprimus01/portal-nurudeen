@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { BookOpen, Layers } from 'lucide-react';
 import { api } from '../../../lib/api';
@@ -16,6 +16,10 @@ export default function ClassSubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classId, setClassId] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
+  // The subject selection as it currently exists on the server for
+  // `classId` - used to derive whether there are unsaved changes, so the
+  // Save button only shows once the person actually changes something.
+  const [savedSelected, setSavedSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,11 +49,23 @@ export default function ClassSubjectsPage() {
   useEffect(() => {
     if (!classId) return;
     const klass = classes.find((c: any) => c.id === classId) as any;
-    setSelected(klass?.classSubjects?.map((cs: any) => cs.subjectId || cs.subject?.id) || []);
+    const ids: string[] = klass?.classSubjects?.map((cs: any) => cs.subjectId || cs.subject?.id) || [];
+    setSelected(ids);
+    setSavedSelected(ids);
   }, [classId, classes]);
+
+  // Order-independent comparison - toggling a box on then off should count
+  // as "no changes", not leave the Save button showing because the array
+  // order differs from what was loaded.
+  const isDirty = useMemo(() => {
+    if (selected.length !== savedSelected.length) return true;
+    const savedSet = new Set(savedSelected);
+    return selected.some((id) => !savedSet.has(id));
+  }, [selected, savedSelected]);
 
   function toggle(id: string) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    setSavedMessage(null);
   }
 
   async function handleSave() {
@@ -59,6 +75,7 @@ export default function ClassSubjectsPage() {
     try {
       const updated = await api.put<SchoolClass>(`/api/classes/${classId}/subjects`, { subjectIds: selected });
       setClasses((cs) => cs.map((c) => (c.id === classId ? (updated as any) : c)));
+      setSavedSelected(selected);
       setSavedMessage('Saved.');
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to save.'));
@@ -129,11 +146,13 @@ export default function ClassSubjectsPage() {
           </div>
 
           {error && <p className="error-text">{error}</p>}
-          {savedMessage && <p style={{ color: 'var(--success)', fontSize: '0.9rem' }}>{savedMessage}</p>}
+          {savedMessage && !isDirty && <p style={{ color: 'var(--success)', fontSize: '0.9rem' }}>{savedMessage}</p>}
 
-          <button className="btn" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
-          </button>
+          {isDirty && (
+            <button className="btn" onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          )}
         </div>
       )}
     </div>

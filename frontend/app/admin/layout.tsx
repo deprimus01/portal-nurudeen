@@ -29,6 +29,7 @@ import {
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { AppShell, NavGroup } from '../../components/ui/AppShell';
+import { RouteLoader } from '../../components/ui/RouteLoader';
 import { buildAdminActions, buildAdminSecondaryActions } from '../../lib/commandActions';
 
 const MOBILE_PRIMARY = ['/admin', '/admin/students', '/admin/attendance', '/admin/messages'];
@@ -119,7 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [loading, user, router]);
 
-  if (loading || !user || user.mustResetPassword || user.role !== 'ADMIN') return null;
+  if (loading || !user || user.mustResetPassword || user.role !== 'ADMIN') return <RouteLoader />;
 
   const profile = user.profile as { firstName?: string; lastName?: string } | null;
   const userName = profile?.firstName ? `${profile.firstName} ${profile.lastName ?? ''}`.trim() : user.email;

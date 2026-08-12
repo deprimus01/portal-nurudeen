@@ -38,6 +38,13 @@ interface SimpleCrudProps {
   emptyDescription?: string;
   /** Empty-state icon accent color. */
   emptyTone?: EmptyStateTone;
+  /**
+   * Extra row-menu items shown above the built-in Edit/Delete, e.g. Move
+   * Up/Down for manually-orderable lists. Receives the full loaded list (so
+   * an item can find its neighbors) and a `reload` callback to refresh the
+   * table after the action's own API call(s) complete.
+   */
+  extraActions?: (item: any, items: any[], reload: () => Promise<void>) => ActionMenuItem[];
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -53,6 +60,7 @@ export function SimpleCrud({
   emptyTitle,
   emptyDescription,
   emptyTone = 'blue',
+  extraActions,
 }: SimpleCrudProps) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,6 +286,7 @@ export function SimpleCrud({
         })) as DataTableColumn<any>[]}
         actions={(item: any) => {
           const items2: ActionMenuItem[] = [
+            ...(extraActions?.(item, items, load) || []),
             { label: `Edit`, icon: Pencil, onClick: () => startEdit(item) },
             {
               label: deletingId === item.id ? 'Deleting…' : 'Delete',

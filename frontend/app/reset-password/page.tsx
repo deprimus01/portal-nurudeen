@@ -7,6 +7,7 @@ import { KeyRound, Lock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { api } from '../../lib/api';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { RouteLoader } from '../../components/ui/RouteLoader';
 import { getErrorMessage } from '../../lib/errors';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -45,7 +46,7 @@ export default function ResetPasswordPage() {
     }
   }
 
-  if (loading || !user) return null;
+  if (loading || !user) return <RouteLoader />;
 
   return (
     <div className="auth-shell">

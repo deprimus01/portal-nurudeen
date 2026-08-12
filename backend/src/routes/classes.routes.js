@@ -27,7 +27,15 @@ router.post(
   requireRole('ADMIN'),
   validateBody(createClassSchema),
   asyncHandler(async (req, res) => {
-    const klass = await prisma.class.create({ data: req.body });
+    let { sortOrder } = req.body;
+    if (sortOrder === undefined) {
+      // Auto-assign to the end of the list, rather than making admins pick
+      // a number by hand - matches how the class list is always displayed
+      // (orderBy sortOrder asc) and how Move Up/Down maintain it below.
+      const last = await prisma.class.findFirst({ orderBy: { sortOrder: 'desc' } });
+      sortOrder = last ? last.sortOrder + 1 : 0;
+    }
+    const klass = await prisma.class.create({ data: { ...req.body, sortOrder } });
     await logAction({ userId: req.user.id, action: 'class.create', entityType: 'Class', entityId: klass.id });
     return res.status(201).json(klass);
   }),

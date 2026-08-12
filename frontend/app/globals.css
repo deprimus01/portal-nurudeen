@@ -457,12 +457,12 @@ tbody tr:last-child td {
   /* Branded navy card - fixed regardless of light/dark theme, with local
      token overrides so every nav/text/hover element inside reads correctly
      against the dark background. */
-  --surface: #020038;
-  --surface-2: rgba(255, 255, 255, 0.07);
-  --border: rgba(255, 255, 255, 0.1);
-  --text: #F4F5FC;
-  --muted: #A8ADD4;
-  --muted-2: #6E74A3;
+  --surface: #0A1852;
+  --surface-2: rgba(255, 255, 255, 0.09);
+  --border: rgba(255, 255, 255, 0.12);
+  --text: #FFFFFF;
+  --muted: #C7CCF0;
+  --muted-2: #9AA1D9;
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
@@ -3234,6 +3234,14 @@ tbody tr:hover .dt-menu-trigger,
 .dt-menu-panel.dt-menu-left {
   right: auto;
   left: 0;
+}
+/* Portaled to document.body so it renders above the table instead of
+   being clipped by .table-wrap's overflow. Position is computed in JS
+   from the trigger's bounding rect and applied as inline top/left/right. */
+.dt-menu-panel.dt-menu-portal {
+  position: fixed;
+  top: auto;
+  z-index: 1000;
 }
 .dt-menu-label {
   font-size: 11px;

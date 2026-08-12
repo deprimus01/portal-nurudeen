@@ -6,6 +6,7 @@ import { BarChart3, CheckSquare, Clock, LayoutDashboard, Megaphone } from 'lucid
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { AppShell, NavGroup } from '../../components/ui/AppShell';
+import { RouteLoader } from '../../components/ui/RouteLoader';
 import { buildStudentActions } from '../../lib/commandActions';
 
 const MOBILE_PRIMARY = ['/student', '/student/timetable', '/student/attendance', '/student/results'];
@@ -53,7 +54,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     }
   }, [loading, user, router]);
 
-  if (loading || !user || user.mustResetPassword || user.role !== 'STUDENT') return null;
+  if (loading || !user || user.mustResetPassword || user.role !== 'STUDENT') return <RouteLoader />;
 
   const profile = user.profile as { firstName?: string; lastName?: string } | null;
   const userName = profile?.firstName ? `${profile.firstName} ${profile.lastName ?? ''}`.trim() : user.email;

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/auth-context';
+import { RouteLoader } from '../components/ui/RouteLoader';
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -25,5 +26,5 @@ export default function HomePage() {
     else router.replace('/portal-coming-soon');
   }, [loading, user, router]);
 
-  return null;
+  return <RouteLoader />;
 }

@@ -6,6 +6,7 @@ import { BarChart3, CheckSquare, LayoutDashboard, Megaphone, MessageSquare, Spar
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { AppShell, NavGroup } from '../../components/ui/AppShell';
+import { RouteLoader } from '../../components/ui/RouteLoader';
 import { buildGuardianActions, buildGuardianSecondaryActions } from '../../lib/commandActions';
 
 const MOBILE_PRIMARY = ['/guardian', '/guardian/ask', '/guardian/fees', '/guardian/messages'];
@@ -54,7 +55,7 @@ export default function GuardianLayout({ children }: { children: React.ReactNode
     }
   }, [loading, user, router]);
 
-  if (loading || !user || user.mustResetPassword || user.role !== 'GUARDIAN') return null;
+  if (loading || !user || user.mustResetPassword || user.role !== 'GUARDIAN') return <RouteLoader />;
 
   const profile = user.profile as { firstName?: string; lastName?: string } | null;
   const userName = profile?.firstName ? `${profile.firstName} ${profile.lastName ?? ''}`.trim() : user.email;

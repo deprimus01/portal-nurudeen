@@ -6,6 +6,7 @@ import { Award, BarChart3, CheckSquare, Clock, LayoutDashboard, Megaphone, Messa
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { AppShell, NavGroup } from '../../components/ui/AppShell';
+import { RouteLoader } from '../../components/ui/RouteLoader';
 import { buildTeacherActions } from '../../lib/commandActions';
 
 const MOBILE_PRIMARY = ['/teacher', '/teacher/attendance', '/teacher/results', '/teacher/messages'];
@@ -67,7 +68,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     }
   }, [loading, user, router]);
 
-  if (loading || !user || user.mustResetPassword || user.role !== 'TEACHER') return null;
+  if (loading || !user || user.mustResetPassword || user.role !== 'TEACHER') return <RouteLoader />;
 
   const profile = user.profile as { firstName?: string; lastName?: string } | null;
   const userName = profile?.firstName ? `${profile.firstName} ${profile.lastName ?? ''}`.trim() : user.email;
