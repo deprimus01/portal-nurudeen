@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Award, BarChart3, CheckSquare, Clock, LayoutDashboard, Megaphone, MessageSquare, TrendingDown } from 'lucide-react';
+import { Award, BarChart3, CheckSquare, Clock, LayoutDashboard, Megaphone, MessageSquare, TrendingDown, UploadCloud } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { useLanguage } from '../../lib/i18n/language-context';
 import { AppShell, NavGroup } from '../../components/ui/AppShell';
@@ -24,6 +24,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         items: [
           { href: '/teacher/attendance', label: t('nav.attendance'), icon: CheckSquare },
           { href: '/teacher/timetable', label: t('nav.timetable'), icon: Clock },
+          { href: '/teacher/students/import', label: t('nav.importStudents'), icon: UploadCloud },
         ],
       },
       {

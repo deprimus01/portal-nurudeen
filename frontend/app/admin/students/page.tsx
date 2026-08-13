@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  CheckCircle2, KeyRound, MessageSquare, Pencil, Plus, Search, UserMinus, UserPlus, Users, X,
+  CheckCircle2, KeyRound, MessageSquare, Pencil, Plus, Search, UploadCloud, UserMinus, UserPlus, Users, X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { api } from '../../../lib/api';
 import type { Student, Guardian, SchoolClass } from '../../../lib/types';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -248,10 +249,15 @@ export default function StudentsPage() {
             {t('pages.students.subtitle')}
           </p>
         </div>
-        <button className="btn" onClick={() => (showForm ? closeForm() : setShowForm(true))}>
-          {showForm ? <X size={15} /> : <UserPlus size={15} />}
-          {showForm ? t('common.cancel') : t('pages.students.addButton')}
-        </button>
+        <div style={{ display: 'flex', gap: '0.6rem' }}>
+          <Link href="/admin/students/import" className="btn btn-outline">
+            <UploadCloud size={15} /> Import Students
+          </Link>
+          <button className="btn" onClick={() => (showForm ? closeForm() : setShowForm(true))}>
+            {showForm ? <X size={15} /> : <UserPlus size={15} />}
+            {showForm ? t('common.cancel') : t('pages.students.addButton')}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>

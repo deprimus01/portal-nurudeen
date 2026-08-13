@@ -107,6 +107,7 @@ export interface Dictionary {
     communication: string;
     dashboard: string;
     students: string;
+    importStudents: string;
     guardians: string;
     staff: string;
     classes: string;
@@ -282,6 +283,7 @@ const en: Dictionary = {
     communication: 'Communication',
     dashboard: 'Dashboard',
     students: 'Students',
+    importStudents: 'Import Students',
     guardians: 'Guardians',
     staff: 'Staff',
     classes: 'Classes',
@@ -459,6 +461,7 @@ const ha: Dictionary = {
     communication: 'Sadarwa',
     dashboard: 'Gida',
     students: 'Dalibai',
+    importStudents: 'Shigo da Dalibai',
     guardians: 'Masu Kulawa',
     staff: "Ma'aikata",
     classes: 'Azuzuwa',
@@ -636,6 +639,7 @@ const yo: Dictionary = {
     communication: 'Ìbánisọ̀rọ̀',
     dashboard: 'Ilé',
     students: 'Akẹ́kọ̀ọ́',
+    importStudents: 'Gbe Akẹ́kọ̀ọ́ Wọlé',
     guardians: 'Alábòójútó',
     staff: 'Òṣìṣẹ́',
     classes: 'Kíláàsì',

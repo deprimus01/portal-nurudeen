@@ -327,3 +327,5 @@ changes.
   three are env var changes only - no code touched.
 
 NODE_OPTIONS=--dns-result-order=ipv4first npx prisma migrate dev --name init
+
+npx prisma migrate deploy && npx prisma generate

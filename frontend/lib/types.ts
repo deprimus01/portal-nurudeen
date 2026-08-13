@@ -337,3 +337,85 @@ export interface ActivityEntry {
   entityId?: string | null;
   createdAt: string;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Smart Student Import (Phase 1: Excel/CSV) — mirrors ImportBatch /
+// ImportRecord in backend/prisma/schema.prisma. mappedData is the staged,
+// editable shape a preview row is built from; nothing here represents a
+// real Student until the batch is committed.
+// ─────────────────────────────────────────────────────────────────────────
+
+export type ImportBatchStatus = 'UPLOADED' | 'PARSING' | 'PREVIEW_READY' | 'COMMITTING' | 'COMPLETED' | 'FAILED';
+export type ImportRecordStatus = 'OK' | 'WARNING' | 'ERROR' | 'IMPORTED' | 'SKIPPED';
+
+export interface ImportBatch {
+  id: string;
+  uploadedById: string;
+  uploadedBy?: { id: string; email: string; staff?: { firstName: string; lastName: string } | null };
+  fileName: string;
+  fileType: string;
+  sourcePhase: string;
+  status: ImportBatchStatus;
+  totalRows: number | null;
+  createdCount: number;
+  skippedCount: number;
+  failedCount: number;
+  createdAt: string;
+  completedAt: string | null;
+  expiresAt: string;
+}
+
+export interface ImportRecordIssue {
+  field: string | null;
+  severity: 'error' | 'warning';
+  message: string;
+}
+
+export interface ImportRecordMappedData {
+  firstName: string;
+  lastName: string;
+  otherNames?: string | null;
+  admissionNumber: string;
+  dateOfBirth: string | null;
+  gender: 'MALE' | 'FEMALE' | null;
+  classInput: string | null;
+  matchedClassId: string | null;
+  matchedClassName: string | null;
+  guardianFirstName?: string | null;
+  guardianLastName?: string | null;
+  guardianPhone?: string | null;
+  guardianEmail?: string | null;
+  guardianRelationship: 'FATHER' | 'MOTHER' | 'GUARDIAN' | 'OTHER';
+  matchedGuardianId: string | null;
+}
+
+export interface ImportRecord {
+  id: string;
+  batchId: string;
+  rowNumber: number;
+  rawData: Record<string, unknown>;
+  mappedData: ImportRecordMappedData;
+  status: ImportRecordStatus;
+  issues: ImportRecordIssue[] | null;
+  matchedStudentId: string | null;
+  matchedGuardianId: string | null;
+  createdStudentId: string | null;
+  createdAt: string;
+}
+
+export interface ImportBatchDetail {
+  batch: ImportBatch;
+  records: ImportRecord[];
+  totalRecords: number;
+  page: number;
+  pageSize: number;
+  statusCounts: Partial<Record<ImportRecordStatus, number>>;
+}
+
+export interface ImportCommitResult {
+  batch: ImportBatch;
+  createdCount: number;
+  skippedCount: number;
+  failedCount: number;
+  failedRows: { rowNumber: number; reason: string }[];
+}

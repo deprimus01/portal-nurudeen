@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import studentsRoutes from './routes/students.routes.js';
+import studentImportRoutes from './routes/studentImport.routes.js';
 import guardiansRoutes from './routes/guardians.routes.js';
 import staffRoutes from './routes/staff.routes.js';
 import classesRoutes from './routes/classes.routes.js';
@@ -80,6 +81,9 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
+// Mounted before /api/students so /api/students/import/* is always
+// resolved by this router first — see studentImport.routes.js.
+app.use('/api/students/import', studentImportRoutes);
 app.use('/api/students', studentsRoutes);
 app.use('/api/guardians', guardiansRoutes);
 app.use('/api/staff', staffRoutes);

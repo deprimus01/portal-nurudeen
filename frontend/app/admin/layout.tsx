@@ -23,6 +23,7 @@ import {
   Sparkles,
   TrendingDown,
   UserCheck,
+  UploadCloud,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -46,6 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         label: t('nav.academics'),
         items: [
           { href: '/admin/students', label: t('nav.students'), icon: Users },
+          { href: '/admin/students/import', label: t('nav.importStudents'), icon: UploadCloud },
           { href: '/admin/guardians', label: t('nav.guardians'), icon: UserCheck },
           { href: '/admin/staff', label: t('nav.staff'), icon: Briefcase },
           { href: '/admin/classes', label: t('nav.classes'), icon: Layers },

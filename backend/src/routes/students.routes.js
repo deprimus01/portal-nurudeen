@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
 import { hashPassword, generateTempPassword } from '../lib/auth.js';
+import { createStudentWithGuardians } from '../lib/createStudent.js';
 import { logAction } from '../lib/auditLog.js';
 import { notifyNewAccount } from '../lib/notify.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
@@ -68,81 +69,7 @@ router.post(
   requireRole('ADMIN'),
   validateBody(createStudentSchema),
   asyncHandler(async (req, res) => {
-    const { guardians, ...studentData } = req.body;
-
-    const result = await prisma.$transaction(async (tx) => {
-      const student = await tx.student.create({ data: studentData });
-
-      const provisionedCredentials = [];
-
-      for (const g of guardians) {
-        let guardianRecord;
-
-        if (g.guardianId) {
-          guardianRecord = await tx.guardian.findUniqueOrThrow({ where: { id: g.guardianId } });
-        } else {
-          if (!g.firstName || !g.lastName || !g.phone) {
-            throw Object.assign(
-              new Error('New guardians require firstName, lastName, and phone.'),
-              { statusCode: 400 },
-            );
-          }
-          guardianRecord = await tx.guardian.create({
-            data: {
-              firstName: g.firstName,
-              lastName: g.lastName,
-              phone: g.phone,
-              email: g.email,
-            },
-          });
-        }
-
-        await tx.studentGuardian.create({
-          data: {
-            studentId: student.id,
-            guardianId: guardianRecord.id,
-            relationship: g.relationship,
-            isPrimary: g.isPrimary,
-          },
-        });
-
-        // Only provision a new User if this guardian doesn't have one yet
-        // (a guardian with multiple children shares one account).
-        const existingUser = await tx.user.findUnique({ where: { guardianId: guardianRecord.id } });
-        if (!existingUser) {
-          if (!guardianRecord.email) {
-            // No email on file — skip auto-provisioning; admin can add one
-            // and provision manually via a future "create portal account"
-            // action. Not a hard failure, since phone-only guardians are
-            // common and shouldn't block enrollment.
-            continue;
-          }
-          const tempPassword = generateTempPassword();
-          const passwordHash = await hashPassword(tempPassword);
-
-          await tx.user.create({
-            data: {
-              email: guardianRecord.email,
-              passwordHash,
-              role: 'GUARDIAN',
-              guardianId: guardianRecord.id,
-              mustResetPassword: true,
-            },
-          });
-
-          provisionedCredentials.push({
-            guardianId: guardianRecord.id,
-            firstName: guardianRecord.firstName,
-            lastName: guardianRecord.lastName,
-            email: guardianRecord.email,
-            phone: guardianRecord.phone,
-            tempPassword,
-          });
-        }
-      }
-
-      return { student, provisionedCredentials };
-    });
+    const result = await prisma.$transaction((tx) => createStudentWithGuardians(tx, req.body));
 
     await Promise.allSettled(
       result.provisionedCredentials.map((c) =>

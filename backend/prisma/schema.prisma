@@ -68,6 +68,7 @@ model User {
   receivedMessages  Message[]      @relation("MessageRecipient")
   authoredAnnouncements Announcement[]
   notifications     Notification[]
+  importBatches     ImportBatch[]
 
   @@index([role])
 }
@@ -599,6 +600,73 @@ model Notification {
   createdAt  DateTime  @default(now())
 
   @@index([userId, read, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Smart Student Import (Phase 1: Excel/CSV) — see
+// SMART_STUDENT_IMPORT_PRD_TRD.docx §11. Staging-only tables: nothing here
+// is a system of record. rawData/mappedData are JSON because their shape
+// varies per source file/format, and this data is never read outside the
+// import wizard + history views. No FK cascade from ImportRecord onto
+// Student — createdStudentId is a soft reference so deleting an old batch
+// can never cascade into deleting a real student.
+// ─────────────────────────────────────────────────────────────────────────
+
+enum ImportBatchStatus {
+  UPLOADED
+  PARSING
+  PREVIEW_READY
+  COMMITTING
+  COMPLETED
+  FAILED
+}
+
+enum ImportRecordStatus {
+  OK
+  WARNING
+  ERROR
+  IMPORTED
+  SKIPPED
+}
+
+model ImportBatch {
+  id           String            @id @default(cuid())
+  uploadedBy   User              @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+  fileName     String
+  fileType     String
+  sourcePhase  String            // "excel_csv" | "docx_pdf" | "ocr" — Phase 1 always "excel_csv"
+  status       ImportBatchStatus @default(UPLOADED)
+  totalRows    Int?
+  createdCount Int               @default(0)
+  skippedCount Int               @default(0)
+  failedCount  Int               @default(0)
+  createdAt    DateTime          @default(now())
+  completedAt  DateTime?
+  // Drives cleanup of rawData / any temp uploaded file — student PII isn't
+  // retained past this window (PRD §8).
+  expiresAt    DateTime
+
+  records ImportRecord[]
+
+  @@index([uploadedById, createdAt])
+}
+
+model ImportRecord {
+  id                String              @id @default(cuid())
+  batch             ImportBatch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batchId           String
+  rowNumber         Int
+  rawData           Json                // as extracted from the file, before mapping
+  mappedData        Json                // after field-mapping + normalization
+  status            ImportRecordStatus
+  issues            Json?               // field-level validation/duplicate messages shown in preview
+  matchedStudentId  String?             // set when flagged as a possible/exact duplicate
+  matchedGuardianId String?             // set when guardian matched to an existing record
+  createdStudentId  String?             // set once IMPORTED — soft reference, no FK
+  createdAt         DateTime            @default(now())
+
+  @@index([batchId, status])
 }
 
 // ─────────────────────────────────────────────────────────────────────────

@@ -334,6 +334,11 @@ tbody tr:last-child td {
 .badge-warn    { background: rgba(217, 119, 6, 0.1); color: var(--warn); border-color: transparent; }
 .badge-gold    { background: rgba(201, 151, 74, 0.14); color: var(--gold); border-color: transparent; }
 
+/* Used where the badge already carries its own icon (e.g. Smart Student
+   Import's status badges) — the generic dot would be redundant next to
+   an icon that's already communicating the same status non-verbally. */
+.badge-icon::before { display: none; }
+
 /* ---------- auth screens ---------- */
 .auth-shell {
   min-height: 100vh;
