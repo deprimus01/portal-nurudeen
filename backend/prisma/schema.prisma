@@ -186,7 +186,11 @@ enum StudentStatus {
 
 model Student {
   id              String        @id @default(cuid())
-  admissionNumber String        @unique
+  // Not globally unique — this school numbers students sequentially
+  // within each class (e.g. "1", "2", "3"), so the same serial number
+  // legitimately exists in JSS1 and JSS2 at once. Uniqueness is enforced
+  // per class via the composite index below instead.
+  admissionNumber String
   firstName       String
   lastName        String
   otherNames      String?
@@ -207,6 +211,7 @@ model Student {
   reportCardComments ReportCardComment[]
   invoices          Invoice[]
 
+  @@unique([currentClassId, admissionNumber])
   @@index([lastName, firstName])
 }
 

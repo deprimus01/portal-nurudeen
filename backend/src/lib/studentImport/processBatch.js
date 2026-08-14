@@ -47,18 +47,28 @@ export async function processImportBatch(batchId, fileBuffer, fileExt) {
 
     const classes = await prisma.class.findMany();
     const mappedRows = rawRows.map((raw) => mapRawRow(raw, mapping));
-    const inFileDuplicateIndices = findInFileDuplicates(mappedRows);
+
+    // Class must be resolved before duplicate detection, since serial
+    // numbers are only unique *within* a class (e.g. "3" legitimately
+    // exists in both JSS1 and JSS2) — the old flow ran duplicate
+    // detection first using bare serial numbers, which would have
+    // wrongly flagged every same-numbered row across different classes
+    // as a collision.
+    const classResolvedRows = mappedRows.map((mapped) => {
+      const { class: matchedClass } = matchClass(mapped.classInput, classes);
+      return { ...mapped, matchedClass, matchedClassId: matchedClass?.id || null };
+    });
+    const inFileDuplicateIndices = findInFileDuplicates(classResolvedRows);
 
     const records = [];
 
-    for (let i = 0; i < mappedRows.length; i++) {
-      const mapped = mappedRows[i];
-      const { class: matchedClass } = matchClass(mapped.classInput, classes);
+    for (let i = 0; i < classResolvedRows.length; i++) {
+      const mapped = classResolvedRows[i];
       const matchedGuardian = mapped.guardianPhone || mapped.guardianEmail
         ? await matchGuardian(prisma, { phone: mapped.guardianPhone, email: mapped.guardianEmail })
         : null;
 
-      const resolved = { ...mapped, matchedClass, matchedGuardianId: matchedGuardian?.id || null };
+      const resolved = { ...mapped, matchedGuardianId: matchedGuardian?.id || null };
       const { status: validationStatus, issues } = validateMappedRow(resolved);
 
       let status = validationStatus;
@@ -70,17 +80,17 @@ export async function processImportBatch(batchId, fileBuffer, fileExt) {
         allIssues.push({
           field: 'admissionNumber',
           severity: 'error',
-          message: 'This serial number appears more than once in the file.',
+          message: 'This serial number appears more than once in this class within the file.',
         });
-      } else if (resolved.admissionNumber) {
-        const exactDuplicate = await findExactDbDuplicate(prisma, resolved.admissionNumber);
+      } else if (resolved.admissionNumber && resolved.matchedClassId) {
+        const exactDuplicate = await findExactDbDuplicate(prisma, resolved.admissionNumber, resolved.matchedClassId);
         if (exactDuplicate) {
           status = 'ERROR';
           matchedStudentId = exactDuplicate.id;
           allIssues.push({
             field: 'admissionNumber',
             severity: 'error',
-            message: 'A student with this serial number already exists.',
+            message: 'A student with this serial number already exists in this class.',
           });
         } else if (resolved.dateOfBirth) {
           const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, resolved);
@@ -90,9 +100,24 @@ export async function processImportBatch(batchId, fileBuffer, fileExt) {
             allIssues.push({
               field: 'firstName',
               severity: 'warning',
-              message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (${fuzzyDuplicate.admissionNumber}). Review before importing.`,
+              message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (serial ${fuzzyDuplicate.admissionNumber}). Review before importing.`,
             });
           }
+        }
+      } else if (resolved.admissionNumber && resolved.dateOfBirth) {
+        // Class didn't resolve — the row is already ERROR-flagged for
+        // that by validateMappedRow, and a per-class serial-number check
+        // isn't meaningful without a class. Fuzzy name+DOB matching still
+        // runs since it doesn't depend on class/serial at all.
+        const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, resolved);
+        if (fuzzyDuplicate) {
+          matchedStudentId = fuzzyDuplicate.id;
+          if (status === 'OK') status = 'WARNING';
+          allIssues.push({
+            field: 'firstName',
+            severity: 'warning',
+            message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (serial ${fuzzyDuplicate.admissionNumber}). Review before importing.`,
+          });
         }
       }
 

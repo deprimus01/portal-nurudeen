@@ -26,9 +26,30 @@ export function asyncHandler(fn) {
 
 // Prisma's known-error codes we want to turn into clean 4xx responses
 // instead of leaking a raw 500 + stack trace.
+
+// Raw Prisma field names aren't fit for a user-facing message (e.g. a
+// composite unique constraint's err.meta.target might be
+// ['currentClassId', 'admissionNumber']) — humanized here so any current
+// or future unique constraint across the app reads naturally instead of
+// leaking column names.
+const FRIENDLY_FIELD_NAMES = {
+  admissionNumber: 'serial number',
+  currentClassId: 'class',
+  email: 'email',
+  phone: 'phone number',
+  employeeId: 'employee ID',
+};
+
+function humanizeFields(rawFields) {
+  const humanized = rawFields.map((f) => FRIENDLY_FIELD_NAMES[f] || f);
+  if (humanized.length === 1) return humanized[0];
+  return `${humanized.slice(0, -1).join(', ')} and ${humanized[humanized.length - 1]}`;
+}
+
 function mapPrismaError(err) {
   if (err.code === 'P2002') {
-    const fields = err.meta?.target?.join(', ') || 'field';
+    const rawFields = err.meta?.target || [];
+    const fields = rawFields.length ? humanizeFields(rawFields) : 'details';
     return { status: 409, error: `A record with this ${fields} already exists.` };
   }
   if (err.code === 'P2025') {

@@ -300,11 +300,6 @@ export default function StudentsPage() {
             <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>{editingId ? 'Edit student details' : 'Student details'}</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.8rem' }}>
               <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="admissionNumber">{t('fields.admissionNumber')}</label>
-                <input id="admissionNumber" required value={studentForm.admissionNumber}
-                  onChange={(e) => setStudentForm({ ...studentForm, admissionNumber: e.target.value })} />
-              </div>
-              <div className="field" style={{ marginBottom: 0 }}>
                 <label htmlFor="firstName">{t('fields.firstName')}</label>
                 <input id="firstName" required value={studentForm.firstName}
                   onChange={(e) => setStudentForm({ ...studentForm, firstName: e.target.value })} />
@@ -335,6 +330,14 @@ export default function StudentsPage() {
                   <option value="" disabled>Select…</option>
                   {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label htmlFor="admissionNumber">{t('fields.admissionNumber')}</label>
+                <input id="admissionNumber" required placeholder="e.g. 1, 2, 3…" value={studentForm.admissionNumber}
+                  onChange={(e) => setStudentForm({ ...studentForm, admissionNumber: e.target.value })} />
+                <p style={{ fontSize: '0.78rem', color: 'var(--muted-2)', margin: '0.3rem 0 0' }}>
+                  Numbered within the selected class — the same number can be reused across different classes.
+                </p>
               </div>
             </div>
 

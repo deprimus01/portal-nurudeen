@@ -242,15 +242,15 @@ router.patch(
     const allIssues = [...issues];
     let matchedStudentId = null;
 
-    if (merged.admissionNumber) {
-      const exactDuplicate = await findExactDbDuplicate(prisma, merged.admissionNumber);
+    if (merged.admissionNumber && merged.matchedClassId) {
+      const exactDuplicate = await findExactDbDuplicate(prisma, merged.admissionNumber, merged.matchedClassId);
       if (exactDuplicate) {
         status = 'ERROR';
         matchedStudentId = exactDuplicate.id;
         allIssues.push({
           field: 'admissionNumber',
           severity: 'error',
-          message: 'A student with this serial number already exists.',
+          message: 'A student with this serial number already exists in this class.',
         });
       } else if (merged.dateOfBirth) {
         const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, {
@@ -264,9 +264,24 @@ router.patch(
           allIssues.push({
             field: 'firstName',
             severity: 'warning',
-            message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (${fuzzyDuplicate.admissionNumber}). Review before importing.`,
+            message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (serial ${fuzzyDuplicate.admissionNumber}). Review before importing.`,
           });
         }
+      }
+    } else if (merged.admissionNumber && merged.dateOfBirth) {
+      const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, {
+        firstName: merged.firstName,
+        lastName: merged.lastName,
+        dateOfBirth: new Date(merged.dateOfBirth),
+      });
+      if (fuzzyDuplicate) {
+        matchedStudentId = fuzzyDuplicate.id;
+        if (status === 'OK') status = 'WARNING';
+        allIssues.push({
+          field: 'firstName',
+          severity: 'warning',
+          message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (serial ${fuzzyDuplicate.admissionNumber}). Review before importing.`,
+        });
       }
     }
 
@@ -340,7 +355,11 @@ router.post(
         createdCount += 1;
       } catch (err) {
         failedCount += 1;
-        const message = err.statusCode ? err.message : 'This row could not be imported.';
+        const message = err.statusCode
+          ? err.message
+          : err.code === 'P2002'
+            ? 'A student with this serial number already exists in this class.'
+            : 'This row could not be imported.';
         await prisma.importRecord.update({
           where: { id: record.id },
           data: {
