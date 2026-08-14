@@ -123,7 +123,7 @@ router.post(
 
     // Detached from the request/response cycle — see processBatch.js.
     setImmediate(() => {
-      processImportBatch(batch.id, req.file.buffer, ext).catch((err) => {
+      processImportBatch(batch.id, req.file.buffer, ext, req.user.id).catch((err) => {
         console.error(`Unhandled error processing import batch ${batch.id}:`, err);
       });
     });

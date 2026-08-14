@@ -2,6 +2,7 @@ import { prisma } from '../prisma.js';
 import { extractFile } from './extract.js';
 import { FileParseError } from './importErrors.js';
 import { buildFieldMapping } from './fieldDictionary.js';
+import { suggestAiFieldMappings } from './aiFieldMapper.js';
 import { mapRawRow } from './mapRow.js';
 import { matchClass } from './classMatcher.js';
 import { matchGuardian } from './guardianMatcher.js';
@@ -38,15 +39,28 @@ function serializeMappedData(m) {
 // §14: "Background Processing Considerations"). Batch status is persisted
 // after every phase so a frontend polling GET /:batchId always sees real
 // progress, and a page refresh never loses it.
-export async function processImportBatch(batchId, fileBuffer, fileExt) {
+export async function processImportBatch(batchId, fileBuffer, fileExt, uploadedById) {
   try {
     await prisma.importBatch.update({ where: { id: batchId }, data: { status: 'PARSING' } });
 
     const { headers, rows: rawRows } = await extractFile(fileBuffer, fileExt);
-    const { mapping } = buildFieldMapping(headers);
+    const { mapping, unmapped } = buildFieldMapping(headers);
+
+    // Phase 4: only engages for headers the deterministic dictionary
+    // couldn't place, and its suggestions are merged into the same
+    // `mapping` used everywhere else — every AI-mapped field still goes
+    // through the normal preview/correction step like any other field
+    // (PRD/TRD §3, §18.5). Batch-level disclosure (aiMappingUsed /
+    // aiMappedFields) is recorded below so the preview UI can flag it.
+    const aiResult = await suggestAiFieldMappings({
+      userId: uploadedById,
+      unmappedHeaders: unmapped,
+      claimedFields: new Set(Object.values(mapping)),
+    });
+    const finalMapping = { ...mapping, ...aiResult.mapping };
 
     const classes = await prisma.class.findMany();
-    const mappedRows = rawRows.map((raw) => mapRawRow(raw, mapping));
+    const mappedRows = rawRows.map((raw) => mapRawRow(raw, finalMapping));
 
     // Class must be resolved before duplicate detection, since serial
     // numbers are only unique *within* a class (e.g. "3" legitimately
@@ -140,7 +154,14 @@ export async function processImportBatch(batchId, fileBuffer, fileExt) {
 
     await prisma.importBatch.update({
       where: { id: batchId },
-      data: { status: 'PREVIEW_READY', totalRows: records.length },
+      data: {
+        status: 'PREVIEW_READY',
+        totalRows: records.length,
+        aiMappingUsed: aiResult.used,
+        aiMappedFields: aiResult.used
+          ? Object.entries(aiResult.mapping).map(([header, field]) => ({ header, field }))
+          : undefined,
+      },
     });
   } catch (err) {
     const message = err instanceof FileParseError ? err.message : 'This file could not be processed.';

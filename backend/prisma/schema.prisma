@@ -651,6 +651,14 @@ model ImportBatch {
   // Drives cleanup of rawData / any temp uploaded file — student PII isn't
   // retained past this window (PRD §8).
   expiresAt    DateTime
+  // Phase 4: set when one or more column headers in this file couldn't be
+  // matched deterministically and were instead mapped via an AI
+  // suggestion (never authoritative — every AI-mapped field still passes
+  // through the normal preview/correction step like any other field).
+  // aiMappedFields is [{ header, field }] for exactly which headers were
+  // AI-assisted, so the preview UI can disclose it plainly.
+  aiMappingUsed  Boolean @default(false)
+  aiMappedFields Json?
 
   records ImportRecord[]
 

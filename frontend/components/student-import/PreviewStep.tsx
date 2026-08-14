@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  AlertTriangle, ChevronLeft, ChevronRight, MinusCircle, Pencil, Undo2,
+  AlertTriangle, ChevronLeft, ChevronRight, MinusCircle, Pencil, Sparkles, Undo2,
 } from 'lucide-react';
 import type { ImportBatchDetail, ImportRecord, SchoolClass, Guardian } from '../../lib/types';
 import { getImportBatch, correctImportRecord } from '../../lib/studentImportApi';
@@ -13,6 +13,26 @@ import { RecordEditor, IssueIcon } from './RecordEditor';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const PAGE_SIZE = 50;
+
+// Human-readable labels for the internal field-slot names used across
+// the import pipeline (fieldDictionary.js's FIELD_SLOTS) — only needed
+// here for the AI-mapping disclosure banner.
+const FIELD_LABELS: Record<string, string> = {
+  fullName: 'Student Name',
+  firstName: 'First Name',
+  lastName: 'Last Name',
+  otherNames: 'Other Names',
+  admissionNumber: 'Serial Number',
+  dateOfBirth: 'Date of Birth',
+  gender: 'Gender',
+  className: 'Class',
+  guardianFullName: 'Guardian Name',
+  guardianFirstName: 'Guardian First Name',
+  guardianLastName: 'Guardian Last Name',
+  guardianPhone: 'Guardian Phone',
+  guardianEmail: 'Guardian Email',
+  guardianRelationship: 'Relationship',
+};
 
 interface PreviewStepProps {
   batchId: string;
@@ -100,6 +120,26 @@ export function PreviewStep({ batchId, detail, onDetailChange, classes, guardian
           {' '}<strong>{counts.importable}</strong> student{counts.importable === 1 ? '' : 's'} will be created.
         </p>
       </div>
+
+      {detail.batch.aiMappingUsed && detail.batch.aiMappedFields && detail.batch.aiMappedFields.length > 0 && (
+        <div
+          className="card"
+          style={{ marginBottom: '1.25rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start', background: 'rgba(0, 85, 251, 0.04)' }}
+        >
+          <Sparkles size={18} color="var(--blue)" style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>Some columns were mapped with AI assistance</div>
+            <p style={{ color: 'var(--muted-2)', fontSize: '0.85rem', margin: '0.3rem 0 0.5rem' }}>
+              We couldn&rsquo;t automatically recognize these column headers, so an AI suggestion was used instead. Please double-check these fields carefully before confirming:
+            </p>
+            <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.85rem', color: 'var(--text)' }}>
+              {detail.batch.aiMappedFields.map((m, i) => (
+                <li key={i}>&ldquo;{m.header}&rdquo; {'\u2192'} {FIELD_LABELS[m.field] || m.field}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {error && <p style={{ color: 'var(--danger)', fontSize: '0.9rem', marginBottom: '1rem' }}>{error}</p>}
 

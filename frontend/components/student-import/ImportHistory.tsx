@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Clock, FileSpreadsheet, Loader2, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, FileSpreadsheet, Loader2, Sparkles, X } from 'lucide-react';
 import type { ImportBatch, ImportBatchStatus } from '../../lib/types';
 import { getImportHistory } from '../../lib/studentImportApi';
 import { getErrorMessage } from '../../lib/errors';
@@ -98,6 +98,11 @@ export function ImportHistory() {
                   {formatDate(batch.createdAt)}{uploaderName ? ` · ${uploaderName}` : ''}
                 </div>
               </div>
+              {batch.aiMappingUsed && (
+                <span title="Some columns in this file were mapped with AI assistance" style={{ flexShrink: 0 }}>
+                  <Sparkles size={14} color="var(--blue)" />
+                </span>
+              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>

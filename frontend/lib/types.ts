@@ -363,6 +363,8 @@ export interface ImportBatch {
   createdAt: string;
   completedAt: string | null;
   expiresAt: string;
+  aiMappingUsed: boolean;
+  aiMappedFields: { header: string; field: string }[] | null;
 }
 
 export interface ImportRecordIssue {
