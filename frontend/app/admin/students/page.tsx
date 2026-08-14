@@ -34,7 +34,6 @@ const EMPTY_STUDENT = {
   firstName: '',
   lastName: '',
   otherNames: '',
-  dateOfBirth: '',
   gender: '',
   currentClassId: '',
 };
@@ -55,7 +54,7 @@ export default function StudentsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [studentForm, setStudentForm] = useState(EMPTY_STUDENT);
-  const [guardianRows, setGuardianRows] = useState<GuardianRow[]>([emptyGuardianRow(true)]);
+  const [guardianRows, setGuardianRows] = useState<GuardianRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState(() => {
@@ -146,7 +145,7 @@ export default function StudentsPage() {
 
   function closeForm() {
     setStudentForm(EMPTY_STUDENT);
-    setGuardianRows([emptyGuardianRow(true)]);
+    setGuardianRows([]);
     setEditingId(null);
     setShowForm(false);
     setError(null);
@@ -158,7 +157,6 @@ export default function StudentsPage() {
       firstName: s.firstName || '',
       lastName: s.lastName || '',
       otherNames: s.otherNames || '',
-      dateOfBirth: s.dateOfBirth ? String(s.dateOfBirth).slice(0, 10) : '',
       gender: s.gender || '',
       currentClassId: s.currentClass?.id || s.currentClassId || '',
     });
@@ -322,11 +320,6 @@ export default function StudentsPage() {
                   onChange={(e) => setStudentForm({ ...studentForm, otherNames: e.target.value })} />
               </div>
               <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="dateOfBirth">{t('fields.dateOfBirth')}</label>
-                <input id="dateOfBirth" type="date" required value={studentForm.dateOfBirth}
-                  onChange={(e) => setStudentForm({ ...studentForm, dateOfBirth: e.target.value })} />
-              </div>
-              <div className="field" style={{ marginBottom: 0 }}>
                 <label htmlFor="gender">{t('fields.gender')}</label>
                 <select id="gender" required value={studentForm.gender}
                   onChange={(e) => setStudentForm({ ...studentForm, gender: e.target.value })}>
@@ -345,7 +338,16 @@ export default function StudentsPage() {
               </div>
             </div>
 
-            {!editingId && <h3 style={{ fontSize: '0.95rem', marginTop: '1.5rem' }}>Guardian(s)</h3>}
+            {!editingId && (
+              <>
+                <h3 style={{ fontSize: '0.95rem', marginTop: '1.5rem' }}>Guardian(s) <span style={{ fontWeight: 400, color: 'var(--muted-2)', fontSize: '0.8rem' }}>(optional)</span></h3>
+                {guardianRows.length === 0 && (
+                  <p style={{ color: 'var(--muted-2)', fontSize: '0.85rem', margin: '0 0 0.7rem' }}>
+                    No guardian added. You can link one later from the Guardians page.
+                  </p>
+                )}
+              </>
+            )}
             {!editingId && guardianRows.map((row, i) => (
               <div key={i} className="card" style={{ marginBottom: '0.7rem', background: 'var(--surface-2)', boxShadow: 'none' }}>
                 <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '0.6rem', fontSize: '0.85rem' }}>
@@ -390,19 +392,17 @@ export default function StudentsPage() {
                       onChange={(e) => updateGuardianRow(i, { isPrimary: e.target.checked })} />
                     Primary contact
                   </label>
-                  {guardianRows.length > 1 && (
-                    <button type="button" className="btn btn-outline"
-                      onClick={() => setGuardianRows((rows) => rows.filter((_, idx) => idx !== i))}>
-                      Remove
-                    </button>
-                  )}
+                  <button type="button" className="btn btn-outline"
+                    onClick={() => setGuardianRows((rows) => rows.filter((_, idx) => idx !== i))}>
+                    Remove
+                  </button>
                 </div>
               </div>
             ))}
             {!editingId && guardianRows.length < 4 && (
               <button type="button" className="btn btn-outline"
-                onClick={() => setGuardianRows((rows) => [...rows, emptyGuardianRow(false)])}>
-                <Plus size={14} /> Add another guardian
+                onClick={() => setGuardianRows((rows) => [...rows, emptyGuardianRow(rows.length === 0)])}>
+                <Plus size={14} /> Add a guardian
               </button>
             )}
 
@@ -431,7 +431,7 @@ export default function StudentsPage() {
           bulkActions={[{ label: 'Withdraw selected', icon: UserMinus, danger: true, onClick: handleBulkWithdraw }]}
           searchValue={search}
           onSearchChange={(v) => { setSearch(v); loadStudents(v); }}
-          searchPlaceholder="Search by name or admission number…"
+          searchPlaceholder="Search by name or serial number…"
           filters={
             <>
               <button className={`filter-chip${classFilter === 'ALL' ? ' active' : ''}`} onClick={() => setClassFilter('ALL')} type="button">

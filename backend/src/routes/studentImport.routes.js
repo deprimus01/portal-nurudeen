@@ -250,7 +250,7 @@ router.patch(
         allIssues.push({
           field: 'admissionNumber',
           severity: 'error',
-          message: 'A student with this admission number already exists.',
+          message: 'A student with this serial number already exists.',
         });
       } else if (merged.dateOfBirth) {
         const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, {

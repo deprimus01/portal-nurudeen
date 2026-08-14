@@ -16,11 +16,6 @@ interface RecordEditorProps {
   onCancel: () => void;
 }
 
-function toDateInputValue(iso: string | null) {
-  if (!iso) return '';
-  return iso.slice(0, 10);
-}
-
 export function RecordEditor({ record, classes, guardianOptions, onSave, onCancel }: RecordEditorProps) {
   const m = record.mappedData;
   const [form, setForm] = useState({
@@ -28,7 +23,6 @@ export function RecordEditor({ record, classes, guardianOptions, onSave, onCance
     lastName: m.lastName || '',
     otherNames: m.otherNames || '',
     admissionNumber: m.admissionNumber || '',
-    dateOfBirth: toDateInputValue(m.dateOfBirth),
     gender: m.gender || '',
     classId: m.matchedClassId || '',
     guardianMode: m.matchedGuardianId ? 'existing' : 'new',
@@ -54,7 +48,6 @@ export function RecordEditor({ record, classes, guardianOptions, onSave, onCance
         gender: (form.gender || undefined) as 'MALE' | 'FEMALE' | undefined,
         guardianRelationship: form.guardianRelationship as 'FATHER' | 'MOTHER' | 'GUARDIAN' | 'OTHER',
       };
-      if (form.dateOfBirth) correction.dateOfBirth = form.dateOfBirth;
       if (form.classId) correction.classId = form.classId;
 
       if (form.guardianMode === 'existing') {
@@ -90,12 +83,8 @@ export function RecordEditor({ record, classes, guardianOptions, onSave, onCance
           <input value={form.otherNames} onChange={(e) => setForm({ ...form, otherNames: e.target.value })} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Admission number</label>
+          <label>Serial number</label>
           <input value={form.admissionNumber} onChange={(e) => setForm({ ...form, admissionNumber: e.target.value })} />
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Date of birth</label>
-          <input type="date" value={form.dateOfBirth} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Gender</label>
@@ -114,7 +103,9 @@ export function RecordEditor({ record, classes, guardianOptions, onSave, onCance
         </div>
       </div>
 
-      <h4 style={{ fontSize: '0.85rem', margin: '1rem 0 0.5rem' }}>Guardian</h4>
+      <h4 style={{ fontSize: '0.85rem', margin: '1rem 0 0.5rem' }}>
+        Guardian <span style={{ fontWeight: 400, color: 'var(--muted-2)' }}>(optional)</span>
+      </h4>
       <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '0.6rem', fontSize: '0.85rem' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', margin: 0 }}>
           <input type="radio" checked={form.guardianMode === 'existing'} onChange={() => setForm({ ...form, guardianMode: 'existing' })} />

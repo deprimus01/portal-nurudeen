@@ -34,7 +34,7 @@ const SYNONYMS = {
   firstName: ['firstname', 'fname', 'givenname'],
   lastName: ['lastname', 'lname', 'surname', 'familyname'],
   otherNames: ['othernames', 'middlename', 'othername'],
-  admissionNumber: ['admissionnumber', 'admissionno', 'admno', 'admnumber', 'regno', 'registrationnumber', 'studentid'],
+  admissionNumber: ['serialnumber', 'serialno', 'sno', 'sn', 'admissionnumber', 'admissionno', 'admno', 'admnumber', 'regno', 'registrationnumber', 'studentid'],
   dateOfBirth: ['dateofbirth', 'dob', 'birthdate', 'birthday'],
   gender: ['gender', 'sex'],
   className: ['class', 'form', 'grade', 'currentclass', 'classform'],

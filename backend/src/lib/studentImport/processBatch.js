@@ -70,7 +70,7 @@ export async function processImportBatch(batchId, fileBuffer, fileExt) {
         allIssues.push({
           field: 'admissionNumber',
           severity: 'error',
-          message: 'This admission number appears more than once in the file.',
+          message: 'This serial number appears more than once in the file.',
         });
       } else if (resolved.admissionNumber) {
         const exactDuplicate = await findExactDbDuplicate(prisma, resolved.admissionNumber);
@@ -80,7 +80,7 @@ export async function processImportBatch(batchId, fileBuffer, fileExt) {
           allIssues.push({
             field: 'admissionNumber',
             severity: 'error',
-            message: 'A student with this admission number already exists.',
+            message: 'A student with this serial number already exists.',
           });
         } else if (resolved.dateOfBirth) {
           const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, resolved);

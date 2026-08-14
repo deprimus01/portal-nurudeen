@@ -16,11 +16,8 @@ export async function commitImportRecord(prisma, record) {
     err.statusCode = 400;
     throw err;
   }
-  if (!m.dateOfBirth) {
-    const err = new Error('Missing or invalid date of birth.');
-    err.statusCode = 400;
-    throw err;
-  }
+  // Date of birth is optional — this school doesn't collect it at
+  // enrollment, so its absence is expected, not a failure.
 
   const guardians = [];
   if (m.matchedGuardianId) {
@@ -39,14 +36,9 @@ export async function commitImportRecord(prisma, record) {
       isPrimary: true,
     });
   }
-  // Rows with no guardian info at all commit with an empty guardians
-  // array — createStudentWithGuardians's for-loop simply doesn't run.
-  // This is a deliberate Phase 1 relaxation versus the manual form (which
-  // requires at least one guardian): a bulk file missing guardian details
-  // for some students shouldn't block the otherwise-clean student record
-  // from being created; the guardian can be linked later from the
-  // Guardians page. rowValidator.js already flags this as a WARNING so
-  // it's never silent.
+  // Rows with no guardian info commit with an empty guardians array —
+  // createStudentWithGuardians's for-loop simply doesn't run. This school
+  // doesn't collect guardian info at enrollment; it's never required.
 
   return prisma.$transaction((tx) =>
     createStudentWithGuardians(tx, {
@@ -54,7 +46,7 @@ export async function commitImportRecord(prisma, record) {
       firstName: m.firstName,
       lastName: m.lastName,
       otherNames: m.otherNames || undefined,
-      dateOfBirth: new Date(m.dateOfBirth),
+      dateOfBirth: m.dateOfBirth ? new Date(m.dateOfBirth) : undefined,
       gender: m.gender,
       currentClassId: m.matchedClassId,
       guardians,

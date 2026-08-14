@@ -10,15 +10,29 @@
 const MIN_AGE_YEARS = 2;
 const MAX_AGE_YEARS = 22;
 
+// mappedData.dateOfBirth arrives as a real Date object when called from
+// processBatch.js (fresh from the extractor/normalizer, pre-serialization)
+// but as an ISO string when called from the PATCH /records/:id correction
+// route (rehydrated from ImportRecord.mappedData, a JSON column — JSON has
+// no Date type). This normalizer makes the validator work correctly from
+// either call site instead of assuming one shape and crashing on the other
+// — that mismatch was the root cause of corrections failing with a
+// generic 500 on any row that already had a date of birth set.
+function toDate(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function ageInYears(dateOfBirth) {
   const diffMs = Date.now() - dateOfBirth.getTime();
   return diffMs / (1000 * 60 * 60 * 24 * 365.25);
 }
 
 // `mappedData` shape:
-// { firstName, lastName, otherNames, admissionNumber, dateOfBirth (Date|null),
-//   gender, classInput, matchedClass, guardianFirstName, guardianLastName,
-//   guardianPhone, guardianEmail, guardianRelationship, matchedGuardianId }
+// { firstName, lastName, otherNames, admissionNumber, dateOfBirth (Date|ISO string|null),
+//   gender, classInput, matchedClass (object) or matchedClassId (string), guardianFirstName,
+//   guardianLastName, guardianPhone, guardianEmail, guardianRelationship, matchedGuardianId }
 export function validateMappedRow(mappedData) {
   const issues = [];
 
@@ -35,17 +49,23 @@ export function validateMappedRow(mappedData) {
   }
 
   if (!mappedData.admissionNumber) {
-    issues.push({ field: 'admissionNumber', severity: 'error', message: 'Admission number is required.' });
+    issues.push({ field: 'admissionNumber', severity: 'error', message: 'Serial number is required.' });
   } else if (mappedData.admissionNumber.length > 30) {
-    issues.push({ field: 'admissionNumber', severity: 'error', message: 'Admission number is too long (max 30 characters).' });
+    issues.push({ field: 'admissionNumber', severity: 'error', message: 'Serial number is too long (max 30 characters).' });
   }
 
-  if (!mappedData.dateOfBirth) {
-    issues.push({ field: 'dateOfBirth', severity: 'error', message: 'Date of birth could not be read. Please enter it manually.' });
-  } else {
-    const age = ageInYears(mappedData.dateOfBirth);
+  const dateOfBirth = toDate(mappedData.dateOfBirth);
+  // Date of birth is optional — this school doesn't collect it at
+  // enrollment. If a file happens to include a DOB column it's still
+  // parsed and used for fuzzy duplicate matching, but its absence is
+  // never an error, and an unparseable value is a soft warning (not a
+  // blocker) rather than forcing every row through manual correction.
+  if (mappedData.dateOfBirth && !dateOfBirth) {
+    issues.push({ field: 'dateOfBirth', severity: 'warning', message: 'Date of birth couldn\u2019t be read and will be left blank.' });
+  } else if (dateOfBirth) {
+    const age = ageInYears(dateOfBirth);
     if (age < MIN_AGE_YEARS || age > MAX_AGE_YEARS) {
-      issues.push({ field: 'dateOfBirth', severity: 'error', message: 'Date of birth looks incorrect — please double-check it.' });
+      issues.push({ field: 'dateOfBirth', severity: 'warning', message: 'Date of birth looks unusual \u2014 double-check it, or leave it blank.' });
     }
   }
 
@@ -53,24 +73,24 @@ export function validateMappedRow(mappedData) {
     issues.push({ field: 'gender', severity: 'error', message: 'Gender must be Male or Female.' });
   }
 
+  // matchedClass is a full object when called from processBatch.js
+  // (pre-serialization); matchedClassId is the string id used in the
+  // persisted/PATCH-rehydrated shape. Either indicates a resolved match.
+  const classMatched = mappedData.matchedClass || mappedData.matchedClassId;
   if (!mappedData.classInput) {
     issues.push({ field: 'className', severity: 'warning', message: 'No class provided — select one before importing.' });
-  } else if (!mappedData.matchedClass) {
+  } else if (!classMatched) {
     issues.push({ field: 'className', severity: 'error', message: `"${mappedData.classInput}" doesn\u2019t match any existing class. Please select the correct class.` });
   }
 
-  // Guardian is optional at the row level (unlike the manual-entry form,
-  // which requires at least one) — a messy bulk file may be missing
-  // guardian details for some rows without that blocking the otherwise-
-  // clean student data. Rows with no guardian info at all are flagged as
-  // a warning, not an error, and can be completed later from the Guardians
-  // page.
+  // This school doesn't collect guardian info at enrollment, so its
+  // absence is expected and never flagged. If a file happens to include
+  // guardian columns anyway, that data is still validated and used —
+  // just never required.
   const hasAnyGuardianInput =
     mappedData.guardianFirstName || mappedData.guardianLastName || mappedData.guardianPhone || mappedData.guardianEmail || mappedData.matchedGuardianId;
 
-  if (!hasAnyGuardianInput) {
-    issues.push({ field: 'guardian', severity: 'warning', message: 'No guardian information found for this student.' });
-  } else if (!mappedData.matchedGuardianId) {
+  if (hasAnyGuardianInput && !mappedData.matchedGuardianId) {
     // Creating a new guardian inline — same requirement as the manual form.
     if (!mappedData.guardianFirstName || !mappedData.guardianLastName || !mappedData.guardianPhone) {
       issues.push({

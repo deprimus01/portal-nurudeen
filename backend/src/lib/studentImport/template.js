@@ -1,27 +1,23 @@
 import * as XLSX from 'xlsx';
 
+// Guardian info and date of birth are deliberately excluded — this school
+// doesn't collect either at enrollment. "Serial Number" (not "Admission
+// Number") matches the school's own terminology; internally this still
+// maps to Student.admissionNumber (renaming that field/column would touch
+// attendance, results, report cards, flagging, and search — this is a
+// display-label change only, not a data-model change).
 const TEMPLATE_HEADERS = [
   'Student Name',
-  'Admission Number',
-  'Date of Birth',
+  'Serial Number',
   'Gender',
   'Class',
-  'Guardian Name',
-  'Guardian Phone',
-  'Guardian Email',
-  'Relationship',
 ];
 
 const EXAMPLE_ROW = [
   'Ahmad Bello Musa',
   'NSG-2026-014',
-  '15/03/2015',
   'Male',
   'JSS1',
-  'Musa Bello',
-  '+2348012345678',
-  'musabello@example.com',
-  'Father',
 ];
 
 export function buildImportTemplateBuffer() {

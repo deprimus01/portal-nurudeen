@@ -190,7 +190,7 @@ model Student {
   firstName       String
   lastName        String
   otherNames      String?
-  dateOfBirth     DateTime
+  dateOfBirth     DateTime?
   gender          Gender
   photoUrl        String?
   status          StudentStatus @default(ACTIVE)

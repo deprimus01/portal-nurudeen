@@ -126,7 +126,7 @@ export function PreviewStep({ batchId, detail, onDetailChange, classes, guardian
                       {m.firstName || m.lastName ? `${m.firstName} ${m.lastName}`.trim() : <em style={{ color: 'var(--muted-2)' }}>Unnamed</em>}
                     </div>
                     <div style={{ fontSize: '0.82rem', color: 'var(--muted-2)' }}>
-                      {m.admissionNumber || 'No admission number'} · {m.matchedClassName || m.classInput || 'No class'}
+                      {m.admissionNumber || 'No serial number'} · {m.matchedClassName || m.classInput || 'No class'}
                     </div>
                   </div>
                   <RecordStatusBadge status={record.status} />

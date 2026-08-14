@@ -55,7 +55,7 @@ export interface Student {
   firstName: string;
   lastName: string;
   otherNames?: string | null;
-  dateOfBirth: string;
+  dateOfBirth: string | null;
   gender: 'MALE' | 'FEMALE';
   status: 'ACTIVE' | 'GRADUATED' | 'WITHDRAWN';
   currentClass?: SchoolClass | null;
