@@ -11,15 +11,15 @@ export async function verifyPassword(plain, hash) {
   return bcrypt.compare(plain, hash);
 }
 
-// A temporary password sent via SMS/email on invite-only account creation.
-// Deliberately excludes ambiguous characters (0/O, 1/l/I) since it's read
-// off a phone screen or SMS by a parent, not copy-pasted.
-const TEMP_PASSWORD_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-
-export function generateTempPassword(length = 10) {
+// A one-time login code sent via SMS/email on account creation or an
+// admin-triggered password reset. Numeric-only (not alphanumeric) so it's
+// easy to read and type back in on a phone keypad — this is a first-login
+// gate, not a long-lived credential (mustResetPassword forces a real
+// password immediately after).
+export function generateTempPassword(length = 6) {
   let out = '';
   for (let i = 0; i < length; i += 1) {
-    out += TEMP_PASSWORD_ALPHABET[Math.floor(Math.random() * TEMP_PASSWORD_ALPHABET.length)];
+    out += Math.floor(Math.random() * 10);
   }
   return out;
 }

@@ -7,7 +7,7 @@ import { uploadImportFile, downloadImportTemplate } from '../../lib/studentImpor
 import { getErrorMessage } from '../../lib/errors';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-const ACCEPTED_EXTENSIONS = ['.xlsx', '.xls', '.csv', '.docx', '.pdf'];
+const ACCEPTED_EXTENSIONS = ['.xlsx', '.xls', '.csv', '.docx', '.pdf', '.jpg', '.jpeg', '.png'];
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 interface UploadStepProps {
@@ -30,7 +30,7 @@ export function UploadStep({ onUploaded }: UploadStepProps) {
     setError(null);
 
     if (!isAcceptedFile(file)) {
-      setError('Please upload an Excel (.xlsx, .xls), CSV, Word (.docx), or PDF file.');
+      setError('Please upload an Excel (.xlsx, .xls), CSV, Word (.docx), PDF, or image (JPG/PNG) file.');
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
@@ -129,7 +129,7 @@ export function UploadStep({ onUploaded }: UploadStepProps) {
           {uploading ? 'Uploading…' : 'Drag a file here, or click to browse'}
         </h3>
         <p style={{ margin: 0, color: 'var(--muted-2)', fontSize: '0.9rem' }}>
-          Excel, CSV, Word, or PDF — up to 10MB, 1,000 students per file
+          Excel, CSV, Word, PDF, or a photo of a register — up to 10MB, 1,000 students per file
         </p>
       </div>
 

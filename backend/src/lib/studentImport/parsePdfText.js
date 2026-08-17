@@ -1,4 +1,5 @@
-import { FileParseError } from './importErrors.js';
+import { FileParseError, ScannedPdfError } from './importErrors.js';
+import { groupIntoRows, assignToColumns, findHeaderRowIndex } from './tableReconstruction.js';
 
 const MAX_ROWS = 1000;
 const MAX_PAGES = 20; // PRD/TRD §15
@@ -12,53 +13,6 @@ const MAX_PAGES = 20; // PRD/TRD §15
 // directly instead.
 async function loadPdfjs() {
   return import('pdfjs-dist/legacy/build/pdf.mjs');
-}
-
-// A naive "split each line on whitespace" approach does not work for
-// PDFs: a table cell's text is a single positioned run with no delimiter
-// before the next cell's run — confirmed empirically against a real
-// Word→PDF export. This extractor reads pdf.js's raw positioned text
-// items per page and reconstructs the table using the header row's
-// x-positions as column anchors — every item is assigned to the column
-// of its nearest anchor, robust to per-cell text being left-aligned,
-// right-aligned, or split across multiple runs.
-const ROW_Y_TOLERANCE = 3;
-
-function groupIntoRows(items) {
-  const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
-  const rows = [];
-
-  for (const item of sorted) {
-    const row = rows.find((r) => Math.abs(r.y - item.y) <= ROW_Y_TOLERANCE);
-    if (row) {
-      row.items.push(item);
-    } else {
-      rows.push({ y: item.y, items: [item] });
-    }
-  }
-
-  return rows.map((r) => ({ ...r, items: r.items.sort((a, b) => a.x - b.x) }));
-}
-
-// Assigns each item in a row to the header column whose anchor x is
-// closest, then joins same-column items (in left-to-right order) with a
-// space — this correctly reassembles a cell whose text arrived as
-// multiple runs (e.g. bold+regular spans within one cell).
-function assignToColumns(rowItems, columnAnchors) {
-  const cells = columnAnchors.map(() => []);
-  for (const item of rowItems) {
-    let closestIndex = 0;
-    let closestDistance = Infinity;
-    columnAnchors.forEach((anchorX, i) => {
-      const distance = Math.abs(item.x - anchorX);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestIndex = i;
-      }
-    });
-    cells[closestIndex].push(item);
-  }
-  return cells.map((cellItems) => cellItems.map((i) => i.text).join(' ').trim());
 }
 
 export async function parsePdfTextTable(buffer) {
@@ -85,6 +39,11 @@ export async function parsePdfTextTable(buffer) {
     );
   }
 
+  // A naive "split each line on whitespace" approach does not work for
+  // PDFs: a table cell's text is a single positioned run with no
+  // delimiter before the next cell's run — confirmed empirically against
+  // a real Word→PDF export. Positioned items are read here and handed to
+  // the shared column-anchored reconstruction (tableReconstruction.js).
   const items = [];
   try {
     for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
@@ -101,23 +60,19 @@ export async function parsePdfTextTable(buffer) {
   }
 
   if (items.length === 0) {
-    // No extractable text at all — this is the scanned/image-based PDF
-    // case. Phase 2 is deterministic-text-only; OCR is Phase 3 and isn't
-    // built yet, so this fails clearly rather than silently producing
-    // nothing (PRD/TRD §3: extraction method escalates by phase, and a
-    // phase that isn't built yet must say so, not guess).
-    throw new FileParseError(
-      'This PDF doesn\u2019t contain selectable text \u2014 it looks like a scanned document. Scanned PDFs aren\u2019t supported yet; please upload an Excel, CSV, or Word file instead, or a PDF exported directly from a spreadsheet/document (not a scan).',
+    // No extractable text at all — a scanned/photographed document.
+    // extract.js catches ScannedPdfError specifically and falls back to
+    // the OCR path (Phase 3) instead of failing outright.
+    throw new ScannedPdfError(
+      'This PDF doesn\u2019t contain selectable text \u2014 it looks like a scanned document.',
     );
   }
 
-  const rows = groupIntoRows(items);
+  // PDF space has y increasing *upward* — rows sort top-to-bottom by
+  // descending y.
+  const rows = groupIntoRows(items, { ySortDescending: true });
 
-  // A plain paragraph line (e.g. a document title above the table) is a
-  // single positioned text item; a real table row has one item per
-  // column. Skip any leading single-item lines rather than assuming the
-  // very first line is the header.
-  const headerRowIndex = rows.findIndex((r) => r.items.length >= 2);
+  const headerRowIndex = findHeaderRowIndex(rows);
   if (headerRowIndex === -1) {
     throw new FileParseError(
       'We couldn\u2019t find a table in this PDF. Please make sure your student list is formatted as a table (like the downloadable template), or upload it as Excel/CSV instead.',

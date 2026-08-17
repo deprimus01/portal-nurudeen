@@ -112,3 +112,26 @@ export function downloadFailedRowsCsv(failedRows: { rowNumber: number; reason: s
   link.remove();
   URL.revokeObjectURL(url);
 }
+
+// Fetches the stored source image (or a rendered PDF page) for visual
+// verification, as an object URL the browser can use directly in an
+// <img>. Auth-gated exactly like every other batch endpoint — never a
+// plain <img src> to the raw API URL, since that would bypass the
+// Authorization header and the server's ownership check entirely.
+// Callers must call URL.revokeObjectURL on the result when done with it
+// to avoid leaking memory across a long preview session.
+export async function fetchImportSourceImageUrl(batchId: string, pdfPage?: number): Promise<string> {
+  const token = getToken();
+  const query = pdfPage ? `?pdfPage=${pdfPage}` : '';
+  const res = await fetch(`${API_BASE_URL}/api/students/import/${batchId}/source${query}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data?.error || 'Could not load the source document.', res.status);
+  }
+
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}

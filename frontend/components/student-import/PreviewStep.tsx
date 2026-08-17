@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  AlertTriangle, ChevronLeft, ChevronRight, MinusCircle, Pencil, Sparkles, Undo2,
+  AlertTriangle, ChevronLeft, ChevronRight, Eye, MinusCircle, Pencil, Sparkles, Undo2,
 } from 'lucide-react';
 import type { ImportBatchDetail, ImportRecord, SchoolClass, Guardian } from '../../lib/types';
 import { getImportBatch, correctImportRecord } from '../../lib/studentImportApi';
 import { getErrorMessage } from '../../lib/errors';
 import { RecordStatusBadge } from './RecordStatusBadge';
 import { RecordEditor, IssueIcon } from './RecordEditor';
+import { SourceVerificationModal } from './SourceVerificationModal';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const PAGE_SIZE = 50;
@@ -55,6 +56,7 @@ export function PreviewStep({ batchId, detail, onDetailChange, classes, guardian
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [reviewingSourceId, setReviewingSourceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(detail.totalRecords / PAGE_SIZE));
@@ -184,10 +186,15 @@ export function PreviewStep({ batchId, detail, onDetailChange, classes, guardian
                 )}
 
                 {!isEditing && record.status !== 'SKIPPED' && (
-                  <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
                     <button type="button" className="btn btn-outline" onClick={() => setEditingId(record.id)}>
                       <Pencil size={14} /> {record.status === 'OK' ? 'Edit' : 'Correct'}
                     </button>
+                    {record.fieldBoxes && record.fieldBoxes.length > 0 && (
+                      <button type="button" className="btn btn-outline" onClick={() => setReviewingSourceId(record.id)}>
+                        <Eye size={14} /> Review Source
+                      </button>
+                    )}
                     <button type="button" className="btn btn-outline" onClick={() => handleToggleSkip(record)}>
                       <MinusCircle size={14} /> Skip
                     </button>
@@ -239,6 +246,26 @@ export function PreviewStep({ batchId, detail, onDetailChange, classes, guardian
           Review & Confirm Import
         </button>
       </div>
+
+      {reviewingSourceId && (() => {
+        const reviewingRecord = detail.records.find((r) => r.id === reviewingSourceId);
+        if (!reviewingRecord) return null;
+        return (
+          <SourceVerificationModal
+            batchId={batchId}
+            record={reviewingRecord}
+            classes={classes}
+            guardianOptions={guardianOptions}
+            onClose={() => setReviewingSourceId(null)}
+            onSaved={(updated) => {
+              onDetailChange({
+                ...detail,
+                records: detail.records.map((r) => (r.id === updated.id ? updated : r)),
+              });
+            }}
+          />
+        );
+      })()}
     </motion.div>
   );
 }

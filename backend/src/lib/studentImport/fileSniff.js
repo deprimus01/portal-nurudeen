@@ -7,13 +7,15 @@
 const ZIP_SIGNATURE = [0x50, 0x4b]; // "PK" — .xlsx and .docx are both zip archives
 const OLE2_SIGNATURE = [0xd0, 0xcf, 0x11, 0xe0]; // legacy .xls
 const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46]; // "%PDF"
+const JPEG_SIGNATURE = [0xff, 0xd8, 0xff];
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 function bytesMatch(buffer, signature) {
   if (buffer.length < signature.length) return false;
   return signature.every((byte, i) => buffer[i] === byte);
 }
 
-const ALLOWED_EXTENSIONS = ['.xlsx', '.xls', '.csv', '.docx', '.pdf'];
+const ALLOWED_EXTENSIONS = ['.xlsx', '.xls', '.csv', '.docx', '.pdf', '.jpg', '.jpeg', '.png'];
 
 export class FileValidationError extends Error {
   constructor(message) {
@@ -35,7 +37,7 @@ export function assertValidImportFile(file) {
   const ext = getExtension(file.originalname);
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
     throw new FileValidationError(
-      'Unsupported file type. Please upload an Excel (.xlsx, .xls), CSV, Word (.docx), or PDF file.',
+      'Unsupported file type. Please upload an Excel (.xlsx, .xls), CSV, Word (.docx), PDF, or image (JPG/PNG) file.',
     );
   }
 
@@ -59,6 +61,16 @@ export function assertValidImportFile(file) {
   if (ext === '.pdf' && !bytesMatch(buffer, PDF_SIGNATURE)) {
     throw new FileValidationError(
       'This file doesn\u2019t look like a valid PDF. It may be corrupted or mislabeled.',
+    );
+  }
+  if ((ext === '.jpg' || ext === '.jpeg') && !bytesMatch(buffer, JPEG_SIGNATURE)) {
+    throw new FileValidationError(
+      'This file doesn\u2019t look like a valid JPEG image. It may be corrupted or mislabeled.',
+    );
+  }
+  if (ext === '.png' && !bytesMatch(buffer, PNG_SIGNATURE)) {
+    throw new FileValidationError(
+      'This file doesn\u2019t look like a valid PNG image. It may be corrupted or mislabeled.',
     );
   }
   if (ext === '.csv') {

@@ -1399,7 +1399,11 @@ tbody tr:last-child td {
   font-size: 13px;
   color: var(--blue);
   font-weight: 600;
-  cursor: help;
+  cursor: pointer;
+  text-decoration: none;
+}
+.login-forgot:hover {
+  text-decoration: underline;
 }
 
 .login-submit {

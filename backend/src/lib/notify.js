@@ -1,8 +1,8 @@
 import { prisma } from './prisma.js';
 import { sendEmail } from './email.js';
 import { sendSms } from './sms.js';
-import { credentialEmail, passwordResetEmail, announcementEmail, newMessageEmail } from './emailTemplates.js';
-import { credentialSms, passwordResetSms, announcementSms, newMessageSms } from './smsTemplates.js';
+import { credentialEmail, passwordResetEmail, announcementEmail, newMessageEmail, studentCredentialEmail, studentPasswordResetEmail } from './emailTemplates.js';
+import { credentialSms, passwordResetSms, announcementSms, newMessageSms, studentCredentialSms, studentPasswordResetSms } from './smsTemplates.js';
 import { notifySystemActivity } from './notifications.js';
 
 // Sends an email and records the outcome in NotificationLog. Never throws
@@ -103,6 +103,25 @@ async function notifyBoth({ email: emailArgs, sms: smsArgs }) {
   };
 }
 
+// Students have no email/phone of their own on file (see Student model in
+// schema.prisma), so anything that needs to reach a student — a new
+// account's OTP, a password reset — goes to a guardian's real contact
+// info instead. Primary guardian preferred; falls back to whichever
+// linked guardian actually has an email or phone on file, since a
+// "primary" flag with no usable contact info is worse than a working
+// non-primary one. Returns null only if the student has no guardians at
+// all (shouldn't happen in practice — enrollment requires at least one —
+// but not asserted here).
+export async function findNotifiableGuardianForStudent(studentId) {
+  const links = await prisma.studentGuardian.findMany({
+    where: { studentId },
+    include: { guardian: true },
+    orderBy: { isPrimary: 'desc' },
+  });
+  if (links.length === 0) return null;
+  return links.find((l) => l.guardian.email || l.guardian.phone)?.guardian || links[0].guardian;
+}
+
 // Called right after a guardian or staff User is provisioned. Awaited by
 // the caller (it's on the same request that created the account) so the
 // admin's UI can still show the temp password either way — this just
@@ -120,26 +139,65 @@ export async function notifyNewAccount({ recipientType, recipientId, name, email
       subject,
       html,
       text,
-      logMessage: `Portal account ready — temp password relayed by email to ${email}.`,
+      logMessage: `Portal account ready — OTP relayed by email to ${email}.`,
     },
     sms: {
       recipientType,
       recipientId,
       to: phone,
       message: sms,
-      logMessage: `Portal account ready — temp password relayed by SMS to ${phone || 'unknown number'}.`,
+      logMessage: `Portal account ready — OTP relayed by SMS to ${phone || 'unknown number'}.`,
     },
   });
 
   // Narrow, single-recipient trigger for the admin "system activity"
   // feed — only fires when BOTH channels failed, i.e. an admin actually
-  // needs to hand the temp password to this person another way. Doesn't
-  // fire on every transient send failure to avoid becoming background
-  // noise.
+  // needs to hand the OTP to this person another way. Doesn't fire on
+  // every transient send failure to avoid becoming background noise.
   if (!result.emailSent && !result.smsSent) {
     notifySystemActivity({
       title: 'System activity',
-      body: `Could not deliver portal credentials to ${name} by email or SMS. Share the temp password directly.`,
+      body: `Could not deliver portal credentials to ${name} by email or SMS. Share the OTP directly.`,
+    }).catch(() => {});
+  }
+
+  return result;
+}
+
+// Companion to notifyNewAccount, for student accounts specifically —
+// students have no email/phone of their own on file, so their OTP is
+// relayed through a guardian's real inbox/number instead (see
+// studentCredentialEmail/Sms and routes/students.routes.js). Logged under
+// the student's own recipientType/recipientId either way, since the
+// account this OTP unlocks is the student's, even though delivery went to
+// the guardian's contact details.
+export async function notifyNewStudentAccount({ studentId, studentName, guardianName, guardianEmail, guardianPhone, loginEmail, tempPassword }) {
+  const { subject, html, text } = studentCredentialEmail({ guardianName, studentName, loginEmail, tempPassword });
+  const sms = studentCredentialSms({ studentName, loginEmail, tempPassword });
+
+  const result = await notifyBoth({
+    email: {
+      recipientType: 'student',
+      recipientId: studentId,
+      to: guardianEmail,
+      subject,
+      html,
+      text,
+      logMessage: `Student portal account ready — OTP relayed by email to guardian at ${guardianEmail}.`,
+    },
+    sms: {
+      recipientType: 'student',
+      recipientId: studentId,
+      to: guardianPhone,
+      message: sms,
+      logMessage: `Student portal account ready — OTP relayed by SMS to guardian at ${guardianPhone || 'unknown number'}.`,
+    },
+  });
+
+  if (!result.emailSent && !result.smsSent) {
+    notifySystemActivity({
+      title: 'System activity',
+      body: `Could not deliver ${studentName}'s portal credentials to their guardian by email or SMS. Share the OTP directly.`,
     }).catch(() => {});
   }
 
@@ -162,14 +220,40 @@ export async function notifyPasswordReset({ recipientType, recipientId, name, em
       subject,
       html,
       text,
-      logMessage: `Password reset by admin — new temp password relayed by email to ${email}.`,
+      logMessage: `Password reset by admin — new OTP relayed by email to ${email}.`,
     },
     sms: {
       recipientType,
       recipientId,
       to: phone,
       message: sms,
-      logMessage: `Password reset by admin — new temp password relayed by SMS to ${phone || 'unknown number'}.`,
+      logMessage: `Password reset by admin — new OTP relayed by SMS to ${phone || 'unknown number'}.`,
+    },
+  });
+}
+
+// Companion to notifyPasswordReset, for student accounts — same
+// guardian-relay reasoning as notifyNewStudentAccount.
+export async function notifyStudentPasswordReset({ studentId, studentName, guardianName, guardianEmail, guardianPhone, loginEmail, tempPassword }) {
+  const { subject, html, text } = studentPasswordResetEmail({ guardianName, studentName, loginEmail, tempPassword });
+  const sms = studentPasswordResetSms({ studentName, loginEmail, tempPassword });
+
+  return notifyBoth({
+    email: {
+      recipientType: 'student',
+      recipientId: studentId,
+      to: guardianEmail,
+      subject,
+      html,
+      text,
+      logMessage: `Password reset by admin — new OTP relayed by email to guardian at ${guardianEmail}.`,
+    },
+    sms: {
+      recipientType: 'student',
+      recipientId: studentId,
+      to: guardianPhone,
+      message: sms,
+      logMessage: `Password reset by admin — new OTP relayed by SMS to guardian at ${guardianPhone || 'unknown number'}.`,
     },
   });
 }
@@ -178,6 +262,46 @@ function recipientRefForUser(user) {
   if (user.role === 'GUARDIAN') return { recipientType: 'guardian', recipientId: user.guardianId };
   if (user.role === 'STUDENT') return { recipientType: 'student', recipientId: user.studentId };
   return { recipientType: 'staff', recipientId: user.staffId };
+}
+
+// Resolves the display name + notification routing for whichever profile
+// this User is attached to (Staff / Guardian / Student — see the three
+// optional 1:1 relations on User in schema.prisma). Shared by
+// users.routes.js (admin force-reset) and auth.routes.js (self-service
+// forgot-password) — both need a human name and an accountType label for
+// the email/SMS, not just the bare recipientType/Id that
+// recipientRefForUser above gives notifyNewMessage.
+export async function loadProfileForUser(user) {
+  if (user.staffId) {
+    const staff = await prisma.staff.findUnique({ where: { id: user.staffId } });
+    return {
+      name: `${staff.firstName} ${staff.lastName}`,
+      recipientType: 'staff',
+      recipientId: staff.id,
+      phone: staff.phone,
+      accountType: staff.role === 'ADMIN' ? 'Admin' : 'Staff',
+    };
+  }
+  if (user.guardianId) {
+    const guardian = await prisma.guardian.findUnique({ where: { id: user.guardianId } });
+    return {
+      name: `${guardian.firstName} ${guardian.lastName}`,
+      recipientType: 'guardian',
+      recipientId: guardian.id,
+      phone: guardian.phone,
+      accountType: 'Guardian',
+    };
+  }
+  if (user.studentId) {
+    const student = await prisma.student.findUnique({ where: { id: user.studentId } });
+    return {
+      name: `${student.firstName} ${student.lastName}`,
+      recipientType: 'student',
+      recipientId: student.id,
+      accountType: 'Student',
+    };
+  }
+  return null;
 }
 
 // Fire-and-forget from the route: emails and texts every guardian in scope

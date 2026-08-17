@@ -1,12 +1,13 @@
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
-import { hashPassword, verifyPassword, signSessionToken } from '../lib/auth.js';
+import { hashPassword, verifyPassword, signSessionToken, generateTempPassword } from '../lib/auth.js';
 import { logAction } from '../lib/auditLog.js';
+import { notifyPasswordReset, notifyStudentPasswordReset, findNotifiableGuardianForStudent, loadProfileForUser } from '../lib/notify.js';
 import { requireAuth } from '../middleware/auth.js';
 import { loginRateLimiter, passwordResetRateLimiter } from '../middleware/rateLimit.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
-import { loginSchema, resetPasswordSchema, updateContactSchema, updatePreferencesSchema } from '../validation/auth.schema.js';
+import { loginSchema, forgotPasswordSchema, resetPasswordSchema, updateContactSchema, updatePreferencesSchema } from '../validation/auth.schema.js';
 
 const router = Router();
 
@@ -48,6 +49,90 @@ router.post(
         mustResetPassword: user.mustResetPassword,
       },
     });
+  }),
+);
+
+// Self-service "forgot password". Deliberately generic in what it reveals:
+// the response is identical whether or not the email matches an account,
+// so this can't be used to check who has a portal login (PRD §2.4 rate
+// limiting + this response shape are the two mitigations for a public,
+// unauthenticated endpoint). Reuses the exact same OTP + mustResetPassword
+// machinery as admin-triggered force-reset (users.routes.js) — a fresh
+// account and "I forgot mine" are the same underlying operation, just
+// triggered by a different actor. Students relay through their guardian,
+// same reasoning as everywhere else this comes up (Student has no
+// email/phone of its own — see schema.prisma).
+router.post(
+  '/forgot-password',
+  passwordResetRateLimiter,
+  validateBody(forgotPasswordSchema),
+  asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    const GENERIC_RESPONSE = { ok: true, message: 'If an account exists for that email, a login code has been sent to it.' };
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.isActive) {
+      return res.json(GENERIC_RESPONSE);
+    }
+
+    const profile = await loadProfileForUser(user);
+    if (!profile) {
+      // Same defensive fallback as force-reset-password — every User
+      // should link to exactly one profile, but don't 500 a public
+      // endpoint over inconsistent data. Just decline to send anything.
+      return res.json(GENERIC_RESPONSE);
+    }
+
+    const tempPassword = generateTempPassword();
+    const passwordHash = await hashPassword(tempPassword);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, mustResetPassword: true },
+    });
+
+    // Fire-and-forget from here down: outbound email/SMS calls can take
+    // seconds, and awaiting them would make this endpoint's response time
+    // a much bigger tell for "does this email have an account" than
+    // bcrypt's fixed ~100ms already is. notifyPasswordReset/
+    // notifyStudentPasswordReset are internally fire-and-forget-safe
+    // (never throw, always log to NotificationLog), so nothing here needs
+    // the result.
+    if (profile.recipientType === 'student') {
+      findNotifiableGuardianForStudent(profile.recipientId)
+        .then((guardian) => {
+          if (!guardian) return;
+          return notifyStudentPasswordReset({
+            studentId: profile.recipientId,
+            studentName: profile.name,
+            guardianName: `${guardian.firstName} ${guardian.lastName}`,
+            guardianEmail: guardian.email,
+            guardianPhone: guardian.phone,
+            loginEmail: user.email,
+            tempPassword,
+          });
+        })
+        .catch(() => {});
+    } else {
+      notifyPasswordReset({
+        recipientType: profile.recipientType,
+        recipientId: profile.recipientId,
+        name: profile.name,
+        email: user.email,
+        phone: profile.phone,
+        tempPassword,
+        accountType: profile.accountType,
+      }).catch(() => {});
+    }
+
+    await logAction({
+      userId: user.id,
+      action: 'auth.forgot_password_requested',
+      entityType: 'User',
+      entityId: user.id,
+    });
+
+    return res.json(GENERIC_RESPONSE);
   }),
 );
 

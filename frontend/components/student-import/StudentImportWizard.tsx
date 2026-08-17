@@ -160,7 +160,7 @@ export function StudentImportWizard({ historyHref }: StudentImportWizardProps) {
           </div>
           <h3 style={{ margin: '0 0 0.35rem' }}>Reading your file…</h3>
           <p style={{ margin: 0, color: 'var(--muted-2)', fontSize: '0.9rem' }} role="status" aria-live="polite">
-            Matching columns, checking for duplicates, and validating each row. This usually takes a few seconds.
+            Matching columns, checking for duplicates, and validating each row. This usually takes a few seconds — scanned documents and photos take longer since each page is being read with OCR.
           </p>
         </motion.div>
       )}

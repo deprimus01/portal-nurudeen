@@ -27,6 +27,32 @@ function normalizeRelationship(raw) {
   return RELATIONSHIP_MAP[key] || 'GUARDIAN';
 }
 
+// Which resolved field(s) a header's claimed slot ends up populating.
+// Most slots map to exactly one resolved field, but 'fullName' and
+// 'guardianFullName' split into two or three — e.g. a single "Student
+// Name" column becomes both firstName and lastName. Used by
+// processBatch.js to attach one OCR bounding box to every resolved
+// field that came from the column it was read from, since there's no
+// finer-grained position data distinguishing "Ahmad" from "Musa" within
+// one cell's bounding box — both fields legitimately point at the same
+// source-image region.
+export const SLOT_TO_RESOLVED_FIELDS = {
+  fullName: ['firstName', 'lastName', 'otherNames'],
+  firstName: ['firstName'],
+  lastName: ['lastName'],
+  otherNames: ['otherNames'],
+  admissionNumber: ['admissionNumber'],
+  dateOfBirth: ['dateOfBirth'],
+  gender: ['gender'],
+  className: ['classInput'],
+  guardianFullName: ['guardianFirstName', 'guardianLastName'],
+  guardianFirstName: ['guardianFirstName'],
+  guardianLastName: ['guardianLastName'],
+  guardianPhone: ['guardianPhone'],
+  guardianEmail: ['guardianEmail'],
+  guardianRelationship: ['guardianRelationship'],
+};
+
 // `rawRow` is { originalHeader: cellValue }; `mapping` is
 // { originalHeader: fieldSlot } from buildFieldMapping(). Returns the
 // normalized-but-not-yet-DB-matched shape rowValidator.js and

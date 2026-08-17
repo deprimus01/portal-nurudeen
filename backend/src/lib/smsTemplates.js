@@ -8,11 +8,21 @@
 const SCHOOL = 'Nuruddeen Schools';
 
 export function credentialSms({ email, tempPassword, accountType }) {
-  return `${SCHOOL}: Your ${accountType.toLowerCase()} portal account is ready. Login: ${email} Temp password: ${tempPassword} You'll set a new password on first login.`;
+  return `${SCHOOL}: Your ${accountType.toLowerCase()} portal account is ready. Login: ${email} OTP: ${tempPassword} You'll set a new password on first login.`;
+}
+
+// Companion to studentCredentialEmail — same guardian-relay reasoning.
+export function studentCredentialSms({ studentName, loginEmail, tempPassword }) {
+  return `${SCHOOL}: ${studentName}'s student portal account is ready. Login: ${loginEmail} OTP: ${tempPassword} They'll set a new password on first login.`;
 }
 
 export function passwordResetSms({ email, tempPassword, accountType }) {
-  return `${SCHOOL}: Your ${accountType.toLowerCase()} portal password was reset by an admin. Login: ${email} Temp password: ${tempPassword} If you didn't request this, contact the school office.`;
+  return `${SCHOOL}: Your ${accountType.toLowerCase()} portal password was reset by an admin. Login: ${email} OTP: ${tempPassword} If you didn't request this, contact the school office.`;
+}
+
+// Companion to studentPasswordResetEmail — same guardian-relay reasoning.
+export function studentPasswordResetSms({ studentName, loginEmail, tempPassword }) {
+  return `${SCHOOL}: ${studentName}'s student portal password was reset by an admin. Login: ${loginEmail} OTP: ${tempPassword} If you didn't request this, contact the school office.`;
 }
 
 export function announcementSms({ title, audienceLabel }) {

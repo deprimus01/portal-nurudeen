@@ -365,6 +365,11 @@ export interface ImportBatch {
   expiresAt: string;
   aiMappingUsed: boolean;
   aiMappedFields: { header: string; field: string }[] | null;
+  // Non-null while the batch is still in PREVIEW_READY — cleared to null
+  // immediately after commit/cancel (see backend schema comment), so its
+  // presence is exactly "can I still show visual verification for this
+  // batch?" without a separate API call to check.
+  sourceFileMimeType: string | null;
 }
 
 export interface ImportRecordIssue {
@@ -391,6 +396,21 @@ export interface ImportRecordMappedData {
   matchedGuardianId: string | null;
 }
 
+export interface FieldBoxCoords {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface FieldBox {
+  field: string;
+  value: string;
+  bbox: FieldBoxCoords;
+  confidence: number; // 0–100
+  page: number;
+}
+
 export interface ImportRecord {
   id: string;
   batchId: string;
@@ -403,6 +423,10 @@ export interface ImportRecord {
   matchedGuardianId: string | null;
   createdStudentId: string | null;
   createdAt: string;
+  // Phase 3 visual verification — present only for OCR-derived rows
+  // (images / scanned PDFs). Null for Excel/CSV/DOCX/text-PDF rows,
+  // since there's no source-image region for those to point back to.
+  fieldBoxes: FieldBox[] | null;
 }
 
 export interface ImportBatchDetail {

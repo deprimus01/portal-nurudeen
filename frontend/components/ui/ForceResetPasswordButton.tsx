@@ -30,7 +30,7 @@ export function ForceResetPasswordButton({ user, displayName }: ForceResetPasswo
   async function handleClick() {
     if (
       !confirm(
-        `Reset ${displayName}'s password? Their current password will stop working immediately, and they'll need the new temporary password to log in.`,
+        `Reset ${displayName}'s password? Their current password will stop working immediately, and they'll need the new one-time login code to log in.`,
       )
     ) {
       return;
@@ -57,7 +57,7 @@ export function ForceResetPasswordButton({ user, displayName }: ForceResetPasswo
         style={{ padding: '0.7rem 0.9rem', borderColor: 'var(--success)', maxWidth: 280 }}
       >
         <p style={{ fontSize: '0.82rem', margin: 0 }}>
-          New password for {result.email}: <code>{result.tempPassword}</code>
+          New login code for {result.email}: <code>{result.tempPassword}</code>
         </p>
         <p style={{ fontSize: '0.72rem', color: 'var(--muted)', margin: '0.3rem 0 0.5rem' }}>
           Also emailed. Won&apos;t be shown again - copy it now.

@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { hashPassword, generateTempPassword } from '../lib/auth.js';
 import { createStudentWithGuardians } from '../lib/createStudent.js';
 import { logAction } from '../lib/auditLog.js';
-import { notifyNewAccount } from '../lib/notify.js';
+import { notifyNewAccount, notifyNewStudentAccount, findNotifiableGuardianForStudent } from '../lib/notify.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { createStudentSchema, updateStudentSchema } from '../validation/student.schema.js';
@@ -147,8 +147,9 @@ router.delete(
 // one), so the login identifier is a synthetic address derived from their
 // admission number on the school's own domain — never a real mailbox, just
 // a stable, unique login handle reusing the existing email+password auth
-// flow without changes. The temp password is still relayed manually today,
-// same as every other credential in this system.
+// flow without changes. The OTP itself IS delivered automatically though —
+// relayed to the student's guardian (see findNotifiableGuardianForStudent),
+// since that's the only real inbox/phone on file for a student.
 router.post(
   '/:id/provision-account',
   requireRole('ADMIN'),
@@ -165,9 +166,8 @@ router.post(
     // the real domain is purchased and connected — just set
     // STUDENT_LOGIN_EMAIL_DOMAIN on the deployment and it takes effect
     // immediately. Defaults to a clearly non-resolving placeholder for
-    // now; this address is never actually emailed to either way (see
-    // comment above this route), so the exact domain has no functional
-    // impact until you update it.
+    // now; this address is never actually emailed to (see comment above
+    // this route) — it's just the login handle, not a delivery target.
     const loginDomain = process.env.STUDENT_LOGIN_EMAIL_DOMAIN || 'students.portal.local';
     const loginEmail = `${student.admissionNumber.toLowerCase()}@${loginDomain}`;
     const tempPassword = generateTempPassword();
@@ -183,15 +183,33 @@ router.post(
       },
     });
 
-    await prisma.notificationLog.create({
-      data: {
-        recipientType: 'student',
-        recipientId: student.id,
-        channel: 'SMS',
-        message: `Student portal account ready. Login: ${loginEmail} / Temp password: ${tempPassword}`,
-        status: 'PENDING',
-      },
-    });
+    const guardian = await findNotifiableGuardianForStudent(student.id);
+    if (guardian) {
+      await notifyNewStudentAccount({
+        studentId: student.id,
+        studentName: `${student.firstName} ${student.lastName}`,
+        guardianName: `${guardian.firstName} ${guardian.lastName}`,
+        guardianEmail: guardian.email,
+        guardianPhone: guardian.phone,
+        loginEmail,
+        tempPassword,
+      });
+    } else {
+      // No guardian on file at all — shouldn't happen (enrollment
+      // requires at least one), but don't block account creation over
+      // it. Log it the same way notify.js does for a fully-failed send,
+      // so it still surfaces in the admin's system activity feed.
+      await prisma.notificationLog.create({
+        data: {
+          recipientType: 'student',
+          recipientId: student.id,
+          channel: 'EMAIL',
+          message: 'Student portal account ready — no guardian on file to relay the OTP to.',
+          status: 'FAILED',
+          errorDetail: 'No linked guardian found.',
+        },
+      });
+    }
 
     await logAction({
       userId: req.user.id,

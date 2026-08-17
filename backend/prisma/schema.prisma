@@ -660,6 +660,29 @@ model ImportBatch {
   aiMappingUsed  Boolean @default(false)
   aiMappedFields Json?
 
+  // Phase 3 visual verification: the ORIGINAL uploaded file, stored once
+  // per batch (never duplicated per student/field — individual field
+  // crops are computed client-side from this single copy using each
+  // ImportRecord's fieldBoxes). Only populated for OCR-derived batches
+  // (usedOcr === true in processBatch.js); Excel/CSV/DOCX/text-PDF
+  // batches have nothing here since there's no "image region" a
+  // spreadsheet cell could point back to.
+  //
+  // Stored directly in Postgres rather than an external object-storage
+  // service (e.g. Cloudinary) deliberately — this project already
+  // depends on Neon's free tier for everything, and adding a second
+  // free-tier service that could silently start charging or get
+  // disabled on overage was judged a worse tradeoff than using a bit
+  // more of the database that's already there. See
+  // SMART_STUDENT_IMPORT_PRD_TRD.docx for the full reasoning.
+  //
+  // Cleared to null as soon as it's no longer needed — immediately after
+  // commit or cancel, not just at the 7-day expiresAt purge — since
+  // visual verification is only useful pre-commit and this is student
+  // PII (PRD §8).
+  sourceFileBytes    Bytes?
+  sourceFileMimeType String?
+
   records ImportRecord[]
 
   @@index([uploadedById, createdAt])
@@ -678,6 +701,16 @@ model ImportRecord {
   matchedGuardianId String?             // set when guardian matched to an existing record
   createdStudentId  String?             // set once IMPORTED — soft reference, no FK
   createdAt         DateTime            @default(now())
+
+  // Phase 3 visual verification: [{ field, value, bbox: {x,y,width,height},
+  // confidence, page }] — one entry per extracted field that has a known
+  // source-image region. Null for non-OCR rows (Excel/CSV/DOCX/text-PDF).
+  // Deliberately lightweight (coordinates only, not a cropped image) —
+  // the frontend crops the single image stored on ImportBatch using
+  // these coordinates rather than this table holding any image data
+  // itself, which is what keeps per-record storage cost negligible even
+  // for a large batch.
+  fieldBoxes Json?
 
   @@index([batchId, status])
 }

@@ -186,7 +186,7 @@ export default function StudentsPage() {
     setError(null);
     if (
       !confirm(
-        `Reset ${displayName}'s password? Their current password will stop working immediately, and they'll need the new temporary password to log in.`,
+        `Reset ${displayName}'s password? Their current password will stop working immediately, and they'll need the new one-time login code to log in.`,
       )
     ) {
       return;
@@ -268,18 +268,17 @@ export default function StudentsPage() {
             exit={{ opacity: 0, height: 0, marginBottom: 0, padding: 0 }}
           >
             <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle2 size={16} color="var(--success)" /> {credentialsBanner.heading} - credentials emailed automatically where possible:
+              <CheckCircle2 size={16} color="var(--success)" /> {credentialsBanner.heading} - credentials sent automatically where possible:
             </strong>
             <ul style={{ fontSize: '0.9rem' }}>
               {credentialsBanner.items.map((c) => (
-                <li key={c.email}>{c.email} - temporary password: <code className="mono">{c.tempPassword}</code></li>
+                <li key={c.email}>{c.email} - one-time login code: <code className="mono">{c.tempPassword}</code></li>
               ))}
             </ul>
             <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-              Shown here in case an email doesn&apos;t land (student login addresses are synthetic
-              and never receive email - relay those credentials manually). SMS delivery isn&apos;t
-              wired up yet, so email is the only automatic channel where a real address exists. This
-              won&apos;t be shown again.
+              Shown here in case delivery doesn&apos;t land. Student login addresses are synthetic
+              (students have no inbox of their own), so their code is emailed and texted to their
+              guardian instead. This won&apos;t be shown again.
             </p>
             <button className="btn btn-outline" onClick={() => setCredentialsBanner(null)}>Dismiss</button>
           </motion.div>

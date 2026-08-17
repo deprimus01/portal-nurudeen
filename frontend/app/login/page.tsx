@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, ShieldCheck, BookOpen, GraduationCap, Users } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
@@ -117,9 +118,9 @@ export default function LoginPage() {
           </div>
 
           <div className="login-row-between">
-            <span className="login-forgot" title="Contact the school office to reset your password">
+            <Link href="/forgot-password" className="login-forgot">
               {t('login.forgotPassword')}
-            </span>
+            </Link>
           </div>
 
           {error && <p className="error-text">{error}</p>}

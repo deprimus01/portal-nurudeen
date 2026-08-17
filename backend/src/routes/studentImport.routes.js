@@ -15,6 +15,7 @@ import { matchClass } from '../lib/studentImport/classMatcher.js';
 import { validateMappedRow } from '../lib/studentImport/rowValidator.js';
 import { findExactDbDuplicate, findFuzzyDbDuplicate } from '../lib/studentImport/duplicateMatcher.js';
 import { commitImportRecord } from '../lib/studentImport/commitRecord.js';
+import { renderPdfPageToImageBuffer } from '../lib/studentImport/parseScannedPdf.js';
 import { buildImportTemplateBuffer } from '../lib/studentImport/template.js';
 import { importRecordCorrectionSchema } from '../validation/studentImport.schema.js';
 
@@ -42,8 +43,36 @@ function handleUpload(req, res, next) {
   });
 }
 
+// sourceFileBytes deliberately excluded here — it can be up to 10MB and
+// every route in this file calls loadOwnedBatch, most of which have
+// nothing to do with the source file. Only the dedicated GET
+// /:batchId/source route below fetches it explicitly, so a normal GET
+// /:batchId (returned inline in JSON) or a PATCH/commit/delete call
+// never pulls a multi-megabyte blob it doesn't need.
+const BATCH_SELECT_WITHOUT_SOURCE_BYTES = {
+  id: true,
+  uploadedById: true,
+  fileName: true,
+  fileType: true,
+  sourcePhase: true,
+  status: true,
+  totalRows: true,
+  createdCount: true,
+  skippedCount: true,
+  failedCount: true,
+  createdAt: true,
+  completedAt: true,
+  expiresAt: true,
+  aiMappingUsed: true,
+  aiMappedFields: true,
+  sourceFileMimeType: true, // small string — safe to always include, tells the frontend whether a "Review Source" action is even possible
+};
+
 async function loadOwnedBatch(req, batchId) {
-  const batch = await prisma.importBatch.findUnique({ where: { id: batchId } });
+  const batch = await prisma.importBatch.findUnique({
+    where: { id: batchId },
+    select: BATCH_SELECT_WITHOUT_SOURCE_BYTES,
+  });
   if (!batch) {
     const err = new Error('Import batch not found.');
     err.statusCode = 404;
@@ -86,7 +115,10 @@ router.get(
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: { uploadedBy: { select: { id: true, email: true, staff: { select: { firstName: true, lastName: true } } } } },
+        select: {
+          ...BATCH_SELECT_WITHOUT_SOURCE_BYTES,
+          uploadedBy: { select: { id: true, email: true, staff: { select: { firstName: true, lastName: true } } } },
+        },
       }),
       prisma.importBatch.count({ where }),
     ]);
@@ -160,6 +192,61 @@ router.get(
       pageSize,
       statusCounts: Object.fromEntries(statusCounts.map((s) => [s.status, s._count])),
     });
+  }),
+);
+
+// GET /api/students/import/:batchId/source?pdfPage=N — streams the
+// stored source file for visual verification (Phase 3 extension). Only
+// ever the ORIGINAL uploaded bytes, stored once per batch and never
+// duplicated per record/field — see the schema comment on
+// ImportBatch.sourceFileBytes. Authenticated and ownership-checked
+// exactly like every other batch route (via loadOwnedBatch); never a
+// public URL, so this is safe even though the file may contain PII.
+router.get(
+  '/:batchId/source',
+  asyncHandler(async (req, res) => {
+    const batch = await loadOwnedBatch(req, req.params.batchId);
+
+    // loadOwnedBatch's own select deliberately excludes sourceFileBytes
+    // (see its comment) — fetched explicitly here, the one place that
+    // actually needs it.
+    const withSource = await prisma.importBatch.findUnique({
+      where: { id: batch.id },
+      select: { sourceFileBytes: true, sourceFileMimeType: true },
+    });
+
+    if (!withSource?.sourceFileBytes) {
+      const err = new Error(
+        'The source file for this import is no longer available. It\u2019s cleared automatically once a batch is imported or cancelled.',
+      );
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (withSource.sourceFileMimeType === 'application/pdf') {
+      // Only the original PDF bytes are stored — each page is rendered
+      // on demand rather than every page being pre-rendered and stored
+      // separately, keeping exactly one stored copy of the source file
+      // per the architectural requirement.
+      const pageNumber = Math.max(1, parseInt(req.query.pdfPage, 10) || 1);
+      let pageImageBuffer;
+      try {
+        pageImageBuffer = await renderPdfPageToImageBuffer(withSource.sourceFileBytes, pageNumber);
+      } catch (err) {
+        console.error(`Failed to render page ${pageNumber} of batch ${batch.id}'s source PDF:`, err);
+        const httpErr = new Error('That page could not be rendered.');
+        httpErr.statusCode = 404;
+        throw httpErr;
+      }
+      res.setHeader('Content-Type', 'image/png');
+      // Private cache only — this is student PII, never a shared/public cache.
+      res.setHeader('Cache-Control', 'private, max-age=3600');
+      return res.send(pageImageBuffer);
+    }
+
+    res.setHeader('Content-Type', withSource.sourceFileMimeType || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.send(withSource.sourceFileBytes);
   }),
 );
 
@@ -398,6 +485,13 @@ router.post(
         createdCount,
         skippedCount,
         failedCount,
+        // Visual verification is only useful pre-commit — clear the raw
+        // source bytes immediately now rather than waiting for the
+        // 7-day expiresAt purge, since this is student PII and there's
+        // no remaining reason to keep it once the batch is done
+        // (PRD/TRD §8: "delete temporary source files when they are no
+        // longer required").
+        sourceFileBytes: null,
       },
     });
 

@@ -5,6 +5,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required.'),
 });
 
+// Public, unauthenticated — see POST /auth/forgot-password. Deliberately
+// the only piece of information needed to kick off a reset; everything
+// else (who the account belongs to, where the OTP actually goes) is
+// resolved server-side so this never has to ask "are you staff, a
+// guardian, or a student".
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Please enter a valid email address.'),
+});
+
 export const resetPasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required.'),
   newPassword: z

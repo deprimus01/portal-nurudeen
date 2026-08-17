@@ -73,16 +73,19 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="currentPassword">Temporary password</label>
+            <label htmlFor="currentPassword">One-time login code</label>
             <div className="input-shell">
               <KeyRound size={16} />
               <input
                 id="currentPassword"
                 type="password"
                 required
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete="one-time-code"
               />
             </div>
           </div>

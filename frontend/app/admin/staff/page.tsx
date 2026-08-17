@@ -110,7 +110,7 @@ export default function StaffPage() {
   async function handleForceReset(userId: string, displayName: string) {
     if (
       !confirm(
-        `Reset ${displayName}'s password? Their current password will stop working immediately, and they'll need the new temporary password to log in.`,
+        `Reset ${displayName}'s password? Their current password will stop working immediately, and they'll need the new one-time login code to log in.`,
       )
     ) {
       return;
@@ -139,7 +139,7 @@ export default function StaffPage() {
             <CheckCircle2 size={16} color="var(--success)" /> {credentialsBanner.heading} - credentials emailed automatically:
           </strong>
           <p style={{ fontSize: '0.9rem' }}>
-            {credentialsBanner.email} - temporary password: <code>{credentialsBanner.tempPassword}</code>
+            {credentialsBanner.email} - one-time login code: <code>{credentialsBanner.tempPassword}</code>
           </p>
           <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
             Shown here too in case the email doesn&apos;t land. Won&apos;t be shown again.

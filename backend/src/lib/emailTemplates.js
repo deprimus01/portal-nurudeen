@@ -24,12 +24,34 @@ export function credentialEmail({ name, email, tempPassword, accountType }) {
       <p>A ${accountType.toLowerCase()} account has been created for you on the Nuruddeen Schools Gusau portal.</p>
       <p style="background: #F7F8FB; border-radius: 8px; padding: 0.8rem 1rem;">
         <strong>Email:</strong> ${email}<br/>
-        <strong>Temporary password:</strong> ${tempPassword}
+        <strong>One-time login code:</strong> <span style="font-size: 1.15rem; letter-spacing: 0.15em; font-weight: 700;">${tempPassword}</span>
       </p>
       <p>You'll be asked to set a new password the first time you log in.</p>
       <p><a href="${PORTAL_URL}/login" style="color: #0055FB;">Log in to the portal →</a></p>
     `),
-    text: `Hi ${name}, a ${accountType.toLowerCase()} account has been created for you.\nEmail: ${email}\nTemporary password: ${tempPassword}\nLog in and set a new password at ${PORTAL_URL}/login`,
+    text: `Hi ${name}, a ${accountType.toLowerCase()} account has been created for you.\nEmail: ${email}\nOne-time login code: ${tempPassword}\nLog in and set a new password at ${PORTAL_URL}/login`,
+  };
+}
+
+// Students have no email/phone of their own on file (see
+// routes/students.routes.js), so their login OTP is relayed through a
+// guardian's real inbox instead — this is addressed to the guardian
+// ("Hi [guardian]") on behalf of the student, distinct from
+// credentialEmail's "an account was created for you" framing.
+export function studentCredentialEmail({ guardianName, studentName, loginEmail, tempPassword }) {
+  return {
+    subject: `${studentName}'s Nuruddeen Schools student portal account is ready`,
+    html: wrap(`
+      <p>Hi ${guardianName},</p>
+      <p>A student portal account has been created for <strong>${studentName}</strong> on the Nuruddeen Schools Gusau portal.</p>
+      <p style="background: #F7F8FB; border-radius: 8px; padding: 0.8rem 1rem;">
+        <strong>Login:</strong> ${loginEmail}<br/>
+        <strong>One-time login code:</strong> <span style="font-size: 1.15rem; letter-spacing: 0.15em; font-weight: 700;">${tempPassword}</span>
+      </p>
+      <p>${studentName} will be asked to set a new password the first time they log in.</p>
+      <p><a href="${PORTAL_URL}/login" style="color: #0055FB;">Log in to the portal →</a></p>
+    `),
+    text: `Hi ${guardianName}, a student portal account has been created for ${studentName}.\nLogin: ${loginEmail}\nOne-time login code: ${tempPassword}\nLog in and set a new password at ${PORTAL_URL}/login`,
   };
 }
 
@@ -45,12 +67,31 @@ export function passwordResetEmail({ name, email, tempPassword, accountType }) {
       <p>An administrator reset the password on your ${accountType.toLowerCase()} portal account. If you didn't request this, contact the school office.</p>
       <p style="background: #F7F8FB; border-radius: 8px; padding: 0.8rem 1rem;">
         <strong>Email:</strong> ${email}<br/>
-        <strong>Temporary password:</strong> ${tempPassword}
+        <strong>One-time login code:</strong> <span style="font-size: 1.15rem; letter-spacing: 0.15em; font-weight: 700;">${tempPassword}</span>
       </p>
       <p>You'll be asked to set a new password the next time you log in.</p>
       <p><a href="${PORTAL_URL}/login" style="color: #0055FB;">Log in to the portal →</a></p>
     `),
-    text: `Hi ${name}, an administrator reset the password on your ${accountType.toLowerCase()} portal account.\nEmail: ${email}\nTemporary password: ${tempPassword}\nLog in and set a new password at ${PORTAL_URL}/login`,
+    text: `Hi ${name}, an administrator reset the password on your ${accountType.toLowerCase()} portal account.\nEmail: ${email}\nOne-time login code: ${tempPassword}\nLog in and set a new password at ${PORTAL_URL}/login`,
+  };
+}
+
+// Companion to studentCredentialEmail — same guardian-relay reasoning,
+// for the force-reset-password flow instead of new-account creation.
+export function studentPasswordResetEmail({ guardianName, studentName, loginEmail, tempPassword }) {
+  return {
+    subject: `${studentName}'s Nuruddeen Schools student portal password was reset`,
+    html: wrap(`
+      <p>Hi ${guardianName},</p>
+      <p>An administrator reset the password on <strong>${studentName}</strong>'s student portal account. If you didn't request this, contact the school office.</p>
+      <p style="background: #F7F8FB; border-radius: 8px; padding: 0.8rem 1rem;">
+        <strong>Login:</strong> ${loginEmail}<br/>
+        <strong>One-time login code:</strong> <span style="font-size: 1.15rem; letter-spacing: 0.15em; font-weight: 700;">${tempPassword}</span>
+      </p>
+      <p>${studentName} will be asked to set a new password the next time they log in.</p>
+      <p><a href="${PORTAL_URL}/login" style="color: #0055FB;">Log in to the portal →</a></p>
+    `),
+    text: `Hi ${guardianName}, an administrator reset the password on ${studentName}'s student portal account.\nLogin: ${loginEmail}\nOne-time login code: ${tempPassword}\nLog in and set a new password at ${PORTAL_URL}/login`,
   };
 }
 

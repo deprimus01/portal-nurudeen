@@ -89,7 +89,7 @@ export default function GuardiansPage() {
   async function handleForceReset(userId: string, displayName: string) {
     if (
       !confirm(
-        `Reset ${displayName}'s password? Their current password will stop working immediately, and they'll need the new temporary password to log in.`,
+        `Reset ${displayName}'s password? Their current password will stop working immediately, and they'll need the new one-time login code to log in.`,
       )
     ) {
       return;
@@ -123,7 +123,7 @@ export default function GuardiansPage() {
             <CheckCircle2 size={16} color="var(--success)" /> Password reset:
           </strong>
           <p style={{ fontSize: '0.9rem' }}>
-            {credentialsBanner.email} - temporary password: <code>{credentialsBanner.tempPassword}</code>
+            {credentialsBanner.email} - one-time login code: <code>{credentialsBanner.tempPassword}</code>
           </p>
           <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
             Also emailed. Won&apos;t be shown again - copy it now.
