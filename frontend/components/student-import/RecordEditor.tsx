@@ -22,7 +22,6 @@ export function RecordEditor({ record, classes, guardianOptions, onSave, onCance
     firstName: m.firstName || '',
     lastName: m.lastName || '',
     otherNames: m.otherNames || '',
-    admissionNumber: m.admissionNumber || '',
     gender: m.gender || '',
     classId: m.matchedClassId || '',
     guardianMode: m.matchedGuardianId ? 'existing' : 'new',
@@ -44,7 +43,6 @@ export function RecordEditor({ record, classes, guardianOptions, onSave, onCance
         firstName: form.firstName,
         lastName: form.lastName,
         otherNames: form.otherNames,
-        admissionNumber: form.admissionNumber,
         gender: (form.gender || undefined) as 'MALE' | 'FEMALE' | undefined,
         guardianRelationship: form.guardianRelationship as 'FATHER' | 'MOTHER' | 'GUARDIAN' | 'OTHER',
       };
@@ -96,13 +94,6 @@ export function RecordEditor({ record, classes, guardianOptions, onSave, onCance
             <option value="" disabled>Select…</option>
             {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Serial number</label>
-          <input value={form.admissionNumber} onChange={(e) => setForm({ ...form, admissionNumber: e.target.value })} placeholder="e.g. 1, 2, 3…" />
-          <p style={{ fontSize: '0.78rem', color: 'var(--muted-2)', margin: '0.3rem 0 0' }}>
-            Numbered within the selected class — reused across other classes is fine.
-          </p>
         </div>
       </div>
 

@@ -14,7 +14,7 @@ type Status = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
 
 interface RosterEntry {
   studentId: string;
-  admissionNumber: string;
+  nameTag: string;
   firstName: string;
   lastName: string;
   status: Status | null;
@@ -217,7 +217,7 @@ export function AttendanceEntry({
           <>
             <table>
               <thead>
-                <tr><th>Student</th><th>Admission #</th><th>Status</th></tr>
+                <tr><th>Student</th><th>Status</th></tr>
               </thead>
               <tbody>
                 {roster.map((row) => (
@@ -226,9 +226,11 @@ export function AttendanceEntry({
                       <div className="shell-avatar" style={{ width: 30, height: 30, fontSize: 11 }}>
                         {initialsFor(row.firstName, row.lastName)}
                       </div>
-                      <span style={{ fontWeight: 600 }}>{row.firstName} {row.lastName}</span>
+                      <span style={{ fontWeight: 600 }}>
+                        {row.firstName} {row.lastName}
+                        {row.nameTag && <span style={{ fontWeight: 400, color: 'var(--muted)' }}>{row.nameTag}</span>}
+                      </span>
                     </td>
-                    <td className="mono" style={{ color: 'var(--muted)' }}>{row.admissionNumber}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                         {STATUS_OPTIONS.map((opt) => (

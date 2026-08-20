@@ -49,6 +49,23 @@ interface DataTableProps<T> {
   rowClassName?: (row: T) => string;
   /** Hides the toolbar entirely (search/filters) - use when the page has nothing to search or filter. */
   hideToolbar?: boolean;
+  /**
+   * Opt-in server-driven mode for large datasets. When provided, `rows` is
+   * assumed to be exactly one already-sorted page of data from the API
+   * (not the full dataset) - the table stops doing its own client-side
+   * search/sort/slice and instead calls back up to the page for each of
+   * those, showing `totalCount`/`page`/`totalPages` from the server
+   * response. Omit this prop entirely for the original fully-client-side
+   * behavior (small/medium lists fetched in full) - every existing caller
+   * that doesn't pass it keeps working exactly as before.
+   */
+  serverPagination?: {
+    page: number;
+    totalCount: number;
+    onPageChange: (page: number) => void;
+    sort?: { key: string; dir: 'asc' | 'desc' } | null;
+    onSortChange?: (sort: { key: string; dir: 'asc' | 'desc' } | null) => void;
+  };
 }
 
 function compareValues(a: string | number | null | undefined, b: string | number | null | undefined) {
@@ -83,24 +100,36 @@ export function DataTable<T>({
   renderCard,
   rowClassName,
   hideToolbar = false,
+  serverPagination,
 }: DataTableProps<T>) {
   const isControlledSearch = onSearchChange !== undefined;
+  const isServerMode = !!serverPagination;
   const [internalQuery, setInternalQuery] = useState('');
-  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
-  const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [internalSort, setInternalSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
+  const [internalPage, setInternalPage] = useState(1);
+  // Stores full row snapshots, not just ids, so a bulk action still has
+  // the data for a row selected on a previous page after server mode has
+  // replaced `rows` with the next page's data (a plain Set<id> would
+  // silently lose those rows once they're no longer in `rows`).
+  const [selectedMap, setSelectedMap] = useState<Map<string, T>>(new Map());
+
+  const sort = isServerMode ? serverPagination.sort ?? null : internalSort;
+  const page = isServerMode ? serverPagination.page : internalPage;
 
   const query = isControlledSearch ? searchValue || '' : internalQuery;
   const hasSearch = isControlledSearch || !!searchKeys;
 
   const searched = useMemo(() => {
-    if (isControlledSearch || !searchKeys || !internalQuery.trim()) return rows;
+    if (isServerMode || isControlledSearch || !searchKeys || !internalQuery.trim()) return rows;
     const q = internalQuery.trim().toLowerCase();
     return rows.filter((r) => searchKeys(r).toLowerCase().includes(q));
-  }, [rows, searchKeys, internalQuery, isControlledSearch]);
+  }, [rows, searchKeys, internalQuery, isControlledSearch, isServerMode]);
 
   const sorted = useMemo(() => {
-    if (!sort) return searched;
+    // Server mode: `rows` arrives pre-sorted from the API - re-sorting a
+    // single page client-side would only reorder those ~10-50 rows, not
+    // the full dataset, so this step is skipped entirely.
+    if (isServerMode || !sort) return searched;
     const col = columns.find((c) => c.key === sort.key);
     if (!col?.sortAccessor) return searched;
     const copy = [...searched];
@@ -109,58 +138,69 @@ export function DataTable<T>({
       return sort.dir === 'asc' ? cmp : -cmp;
     });
     return copy;
-  }, [searched, sort, columns]);
+  }, [searched, sort, columns, isServerMode]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const totalCount = isServerMode ? serverPagination.totalCount : sorted.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const signature = `${rows.length}|${query}`;
 
   useEffect(() => {
-    setPage(1);
+    if (isServerMode) return;
+    setInternalPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+    if (isServerMode) return;
+    if (internalPage > totalPages) setInternalPage(totalPages);
+  }, [internalPage, totalPages, isServerMode]);
 
-  const paged = useMemo(
-    () => sorted.slice((page - 1) * pageSize, page * pageSize),
-    [sorted, page, pageSize],
-  );
+  const paged = useMemo(() => {
+    // Server mode: `rows` already IS the current page.
+    if (isServerMode) return sorted;
+    return sorted.slice((internalPage - 1) * pageSize, internalPage * pageSize);
+  }, [sorted, internalPage, pageSize, isServerMode]);
 
-  function toggleSort(key: string) {
-    setSort((s) => {
-      if (!s || s.key !== key) return { key, dir: 'asc' };
-      if (s.dir === 'asc') return { key, dir: 'desc' };
-      return null;
-    });
+  function goToPage(next: number) {
+    if (isServerMode) serverPagination.onPageChange(next);
+    else setInternalPage(next);
   }
 
-  function toggleRow(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
+  function toggleSort(key: string) {
+    const next = (() => {
+      if (!sort || sort.key !== key) return { key, dir: 'asc' as const };
+      if (sort.dir === 'asc') return { key, dir: 'desc' as const };
+      return null;
+    })();
+    if (isServerMode) serverPagination.onSortChange?.(next);
+    else setInternalSort(next);
+  }
+
+  function toggleRow(id: string, row: T) {
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else next.set(id, row);
       return next;
     });
   }
 
   const pageIds = paged.map(getRowId);
-  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedMap.has(id));
 
   function toggleSelectAllOnPage() {
-    setSelected((prev) => {
-      const next = new Set(prev);
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
       if (allPageSelected) {
         pageIds.forEach((id) => next.delete(id));
       } else {
-        pageIds.forEach((id) => next.add(id));
+        paged.forEach((row) => next.set(getRowId(row), row));
       }
       return next;
     });
   }
 
-  const selectedRows = rows.filter((r) => selected.has(getRowId(r)));
+  const selectedRows = Array.from(selectedMap.values());
   const colCount = columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0);
 
   function renderAutoCard(row: T, id: string, actionsMenu: ReactNode) {
@@ -173,15 +213,15 @@ export function DataTable<T>({
     const titlePlain = typeof titleText === 'string' ? titleText : '';
 
     return (
-      <div className={`dt-card${selected.has(id) ? ' dt-row-selected' : ''}`}>
+      <div className={`dt-card${selectedMap.has(id) ? ' dt-row-selected' : ''}`}>
         <div className="dt-card-main">
           {selectable && (
             <div className="dt-card-checkbox">
               <input
                 type="checkbox"
                 className="dt-checkbox"
-                checked={selected.has(id)}
-                onChange={() => toggleRow(id)}
+                checked={selectedMap.has(id)}
+                onChange={() => toggleRow(id, row)}
                 aria-label="Select row"
               />
             </div>
@@ -233,17 +273,17 @@ export function DataTable<T>({
           )}
           {filters && <div className="dt-toolbar-filters">{filters}</div>}
           <div className="dt-toolbar-spacer" />
-          {!loading && sorted.length > 0 && (
+          {!loading && totalCount > 0 && (
             <span className="dt-count">
-              {sorted.length} {sorted.length === 1 ? 'result' : 'results'}
+              {totalCount} {totalCount === 1 ? 'result' : 'results'}
             </span>
           )}
         </div>
       )}
 
-      {selectable && selected.size > 0 && (
+      {selectable && selectedMap.size > 0 && (
         <div className="dt-bulk-bar">
-          <span className="dt-bulk-count">{selected.size} selected</span>
+          <span className="dt-bulk-count">{selectedMap.size} selected</span>
           {bulkActions?.map((a) => (
             <button
               key={a.label}
@@ -256,7 +296,7 @@ export function DataTable<T>({
               {a.label}
             </button>
           ))}
-          <button type="button" className="dt-bulk-clear" onClick={() => setSelected(new Set())}>
+          <button type="button" className="dt-bulk-clear" onClick={() => setSelectedMap(new Map())}>
             Clear
           </button>
         </div>
@@ -325,7 +365,7 @@ export function DataTable<T>({
                   return (
                     <motion.tr
                       key={id}
-                      className={`${selected.has(id) ? 'dt-row-selected ' : ''}${rowClassName?.(row) || ''}`}
+                      className={`${selectedMap.has(id) ? 'dt-row-selected ' : ''}${rowClassName?.(row) || ''}`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.2, delay: Math.min(i, 10) * 0.02 }}
@@ -335,8 +375,8 @@ export function DataTable<T>({
                           <input
                             type="checkbox"
                             className="dt-checkbox"
-                            checked={selected.has(id)}
-                            onChange={() => toggleRow(id)}
+                            checked={selectedMap.has(id)}
+                            onChange={() => toggleRow(id, row)}
                             aria-label="Select row"
                           />
                         </td>
@@ -373,16 +413,16 @@ export function DataTable<T>({
             </div>
           </div>
 
-          {sorted.length > pageSize && (
+          {(isServerMode ? totalCount > pageSize : sorted.length > pageSize) && (
             <div className="dt-pagination">
               <span className="dt-pagination-info">
-                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
+                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount}
               </span>
               <div className="dt-pagination-controls">
                 <button
                   type="button"
                   className="dt-page-btn"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => goToPage(Math.max(1, page - 1))}
                   disabled={page === 1}
                   aria-label="Previous page"
                 >
@@ -406,7 +446,7 @@ export function DataTable<T>({
                         key={p}
                         type="button"
                         className={`dt-page-btn${p === page ? ' dt-page-btn-active' : ''}`}
-                        onClick={() => setPage(p)}
+                        onClick={() => goToPage(p)}
                       >
                         {p}
                       </button>
@@ -415,7 +455,7 @@ export function DataTable<T>({
                 <button
                   type="button"
                   className="dt-page-btn"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => goToPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
                   aria-label="Next page"
                 >

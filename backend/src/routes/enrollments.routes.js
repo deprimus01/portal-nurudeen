@@ -36,6 +36,58 @@ router.get(
   }),
 );
 
+// School-wide enrollment overview — backs the admin dashboard's enrollment
+// widget, which previously fetched all terms then called GET /
+// (unfiltered by termId) once per recent term (1 + up to 6 requests) to
+// build a trend line and a class-distribution chart client side. This
+// computes the same two things with a fixed small number of aggregate
+// queries, so it no longer scales with how many terms the school has run.
+router.get(
+  '/summary',
+  requireRole('ADMIN'),
+  asyncHandler(async (req, res) => {
+    const allTerms = await prisma.term.findMany({
+      include: { session: true },
+      orderBy: { startDate: 'asc' },
+    });
+
+    if (allTerms.length === 0) {
+      return res.json({ terms: [], currentTermId: null, classDistribution: [] });
+    }
+
+    const recentTerms = allTerms.slice(-6);
+    const termIds = recentTerms.map((t) => t.id);
+    const currentTerm = recentTerms.find((t) => t.isCurrent) || recentTerms[recentTerms.length - 1];
+
+    const [enrollmentCountsByTerm, classGroups] = await prisma.$transaction([
+      prisma.enrollment.groupBy({ by: ['termId'], where: { termId: { in: termIds } }, _count: { _all: true } }),
+      prisma.enrollment.groupBy({ by: ['classId'], where: { termId: currentTerm.id }, _count: { _all: true } }),
+    ]);
+
+    const countByTermId = new Map(enrollmentCountsByTerm.map((g) => [g.termId, g._count._all]));
+
+    const classIds = classGroups.map((g) => g.classId);
+    const classes = classIds.length
+      ? await prisma.class.findMany({ where: { id: { in: classIds } }, select: { id: true, name: true } })
+      : [];
+    const classNameById = new Map(classes.map((c) => [c.id, c.name]));
+
+    const classDistribution = classGroups
+      .map((g) => ({ label: classNameById.get(g.classId) || 'Unassigned', value: g._count._all }))
+      .sort((a, b) => b.value - a.value);
+
+    const terms = recentTerms.map((t) => ({
+      id: t.id,
+      name: t.name,
+      sessionName: t.session?.name || '',
+      isCurrent: t.isCurrent,
+      enrollmentCount: countByTermId.get(t.id) || 0,
+    }));
+
+    return res.json({ terms, currentTermId: currentTerm.id, classDistribution });
+  }),
+);
+
 // Enrolling a student in a term also updates their currentClassId — this
 // is how yearly promotion works: create a new Enrollment row for the new
 // term/class, and the student's "current" pointer moves with it.

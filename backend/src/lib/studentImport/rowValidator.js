@@ -30,7 +30,7 @@ function ageInYears(dateOfBirth) {
 }
 
 // `mappedData` shape:
-// { firstName, lastName, otherNames, admissionNumber, dateOfBirth (Date|ISO string|null),
+// { firstName, lastName, otherNames, dateOfBirth (Date|ISO string|null),
 //   gender, classInput, matchedClass (object) or matchedClassId (string), guardianFirstName,
 //   guardianLastName, guardianPhone, guardianEmail, guardianRelationship, matchedGuardianId }
 export function validateMappedRow(mappedData) {
@@ -46,12 +46,6 @@ export function validateMappedRow(mappedData) {
     issues.push({ field: 'lastName', severity: 'error', message: 'Last name is required — check if the name column needs splitting.' });
   } else if (mappedData.lastName.length > 60) {
     issues.push({ field: 'lastName', severity: 'error', message: 'Last name is too long (max 60 characters).' });
-  }
-
-  if (!mappedData.admissionNumber) {
-    issues.push({ field: 'admissionNumber', severity: 'error', message: 'Serial number is required.' });
-  } else if (mappedData.admissionNumber.length > 30) {
-    issues.push({ field: 'admissionNumber', severity: 'error', message: 'Serial number is too long (max 30 characters).' });
   }
 
   const dateOfBirth = toDate(mappedData.dateOfBirth);

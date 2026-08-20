@@ -3,15 +3,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CheckSquare } from 'lucide-react';
 import { api } from '../../lib/api';
-import type { SchoolClass } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
 import { Donut } from '../ui/charts/Donut';
 import { getErrorMessage } from '../../lib/errors';
 
-interface RosterEntry {
-  studentId: string;
-  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | null;
+interface AttendanceSummaryResponse {
+  totalClasses: number;
+  classesMarked: number;
+  totalStudents: number;
+  counts: { PRESENT: number; ABSENT: number; LATE: number; EXCUSED: number };
 }
 
 function todayISO() {
@@ -20,36 +21,23 @@ function todayISO() {
 }
 
 /**
- * School-wide attendance for today, built by calling the same
- * /api/attendance/roster?classId&date endpoint the class attendance
- * screen already uses, once per class. There's no separate whole-school
- * aggregate endpoint, so this composes one from real per-class rosters
- * rather than inventing a summary figure.
+ * School-wide attendance for today, backed by GET /api/attendance/summary
+ * — a single aggregate query computed server-side. Previously this fetched
+ * every class then called /api/attendance/roster once per class (1 + N
+ * requests), which got slower as the school added classes; the numbers
+ * shown are unchanged, just computed in the database instead of the browser.
  */
 export function AdminAttendanceWidget({ href, title = 'Attendance overview' }: { href: string; title?: string }) {
-  const [classes, setClasses] = useState<SchoolClass[]>([]);
-  const [rosters, setRosters] = useState<Map<string, RosterEntry[]>>(new Map());
+  const [summaryData, setSummaryData] = useState<AttendanceSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   function load() {
     setLoading(true);
     setError(null);
-    const date = todayISO();
     api
-      .get<SchoolClass[]>('/api/classes')
-      .then(async (list) => {
-        setClasses(list);
-        const entries = await Promise.all(
-          list.map((c) =>
-            api
-              .get<{ roster: RosterEntry[] }>(`/api/attendance/roster?classId=${c.id}&date=${date}`)
-              .then((res): readonly [string, RosterEntry[]] => [c.id, res.roster])
-              .catch((): readonly [string, RosterEntry[]] => [c.id, []]),
-          ),
-        );
-        setRosters(new Map(entries));
-      })
+      .get<AttendanceSummaryResponse>(`/api/attendance/summary?date=${todayISO()}`)
+      .then(setSummaryData)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load attendance.')))
       .finally(() => setLoading(false));
   }
@@ -57,22 +45,18 @@ export function AdminAttendanceWidget({ href, title = 'Attendance overview' }: {
   useEffect(() => { load(); }, []);
 
   const summary = useMemo(() => {
-    const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 } as Record<string, number>;
-    let totalStudents = 0;
-    let classesMarked = 0;
-    for (const [, roster] of rosters) {
-      if (roster.length === 0) continue;
-      totalStudents += roster.length;
-      const anyMarked = roster.some((r) => r.status);
-      if (anyMarked) classesMarked += 1;
-      for (const r of roster) {
-        if (r.status) counts[r.status] = (counts[r.status] || 0) + 1;
-      }
-    }
+    const counts = summaryData?.counts ?? { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 };
     const marked = counts.PRESENT + counts.ABSENT + counts.LATE + counts.EXCUSED;
     const rate = marked > 0 ? Math.round((counts.PRESENT / marked) * 100) : 0;
-    return { counts, totalStudents, classesMarked, rate };
-  }, [rosters]);
+    return {
+      counts,
+      totalStudents: summaryData?.totalStudents ?? 0,
+      classesMarked: summaryData?.classesMarked ?? 0,
+      rate,
+    };
+  }, [summaryData]);
+
+  const totalClasses = summaryData?.totalClasses ?? 0;
 
   const segments = [
     { label: 'Present', value: summary.counts.PRESENT, color: 'var(--success)' },
@@ -81,7 +65,7 @@ export function AdminAttendanceWidget({ href, title = 'Attendance overview' }: {
     { label: 'Excused', value: summary.counts.EXCUSED, color: 'var(--gold)' },
   ];
 
-  const noData = classes.length === 0 || summary.totalStudents === 0;
+  const noData = totalClasses === 0 || summary.totalStudents === 0;
 
   return (
     <DashboardWidget title={title} icon={CheckSquare} href={href} linkLabel="Take attendance" loading={loading} error={error} onRetry={load}>
@@ -91,7 +75,7 @@ export function AdminAttendanceWidget({ href, title = 'Attendance overview' }: {
         <>
           <Donut segments={segments} centerLabel="present rate" centerValue={`${summary.rate}%`} />
           <div style={{ marginTop: 14, fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
-            {summary.classesMarked} of {classes.length} classes marked today
+            {summary.classesMarked} of {totalClasses} classes marked today
           </div>
         </>
       )}

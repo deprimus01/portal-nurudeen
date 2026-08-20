@@ -62,7 +62,6 @@ export interface Dictionary {
     phone: string;
     address: string;
     employeeId: string;
-    admissionNumber: string;
     class: string;
     subject: string;
     role: string;
@@ -238,7 +237,6 @@ const en: Dictionary = {
     phone: 'Phone',
     address: 'Address',
     employeeId: 'Employee ID',
-    admissionNumber: 'Serial number',
     class: 'Class',
     subject: 'Subject',
     role: 'Role',
@@ -416,7 +414,6 @@ const ha: Dictionary = {
     phone: 'Waya',
     address: 'Adireshi',
     employeeId: "Lambar Ma'aikaci",
-    admissionNumber: 'Lambar Serial',
     class: 'Aji',
     subject: 'Darasi',
     role: 'Matsayi',
@@ -594,7 +591,6 @@ const yo: Dictionary = {
     phone: 'Fóònù',
     address: 'Àdírẹ́sì',
     employeeId: 'Nọ́mbà Òṣìṣẹ́',
-    admissionNumber: 'Nọ́mbà Síríẹ̀lì',
     class: 'Kíláàsì',
     subject: 'Ẹ̀kọ́',
     role: 'Ipò',

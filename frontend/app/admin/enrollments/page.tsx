@@ -86,7 +86,9 @@ export default function EnrollmentsPage() {
               <select id="studentId" required value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })}>
                 <option value="" disabled>Select…</option>
                 {students.map((s) => (
-                  <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({s.admissionNumber})</option>
+                  <option key={s.id} value={s.id}>
+                    {s.firstName} {s.lastName}{s.nameTag || ''}{s.currentClass ? ` (currently ${s.currentClass.name})` : ''}
+                  </option>
                 ))}
               </select>
             </div>

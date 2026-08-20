@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
 import { guardianStudentIds } from '../lib/guardianOwnership.js';
+import { buildNameDisambiguationTags } from '../lib/nameDisambiguation.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
@@ -53,7 +54,6 @@ async function searchStudents(q) {
       OR: [
         insensitiveContains('firstName', q),
         insensitiveContains('lastName', q),
-        insensitiveContains('admissionNumber', q),
       ],
     },
     include: { currentClass: true },
@@ -61,12 +61,16 @@ async function searchStudents(q) {
     take: CATEGORY_LIMIT,
   });
 
+  // Scoped per class, matching every other disambiguation site — two
+  // matching students only need a tag if they're actually in the same
+  // class together.
+  const tags = buildNameDisambiguationTags(students, { classKeyOf: (s) => s.currentClassId });
+
   return students.map((s) => ({
     type: 'STUDENT',
     id: s.id,
-    title: `${s.firstName} ${s.lastName}`,
+    title: `${s.firstName} ${s.lastName}${tags.get(s.id) || ''}`,
     subtitle: s.currentClass?.name || 'Unassigned',
-    meta: s.admissionNumber,
   }));
 }
 
@@ -182,7 +186,6 @@ async function searchResultsForStaff(q) {
       OR: [
         { student: { firstName: { contains: q, mode: 'insensitive' } } },
         { student: { lastName: { contains: q, mode: 'insensitive' } } },
-        { student: { admissionNumber: { contains: q, mode: 'insensitive' } } },
         { subject: { name: { contains: q, mode: 'insensitive' } } },
         { exam: { name: { contains: q, mode: 'insensitive' } } },
       ],
@@ -365,7 +368,6 @@ async function searchFeesAdmin(q) {
         OR: [
           { student: { firstName: { contains: q, mode: 'insensitive' } } },
           { student: { lastName: { contains: q, mode: 'insensitive' } } },
-          { student: { admissionNumber: { contains: q, mode: 'insensitive' } } },
         ],
       },
       include: { student: true, term: true },

@@ -1,5 +1,6 @@
 import { prisma } from './prisma.js';
 import { resolveGrade } from './grading.js';
+import { buildNameDisambiguationTags } from './nameDisambiguation.js';
 
 // Computes a full report card for one student/exam: every subject in the
 // exam's class curriculum, with score + resolved grade/remark, plus a
@@ -38,9 +39,19 @@ export async function computeReportCard(examId, studentId) {
     ? Math.round((enteredScores.reduce((a, b) => a + b, 0) / enteredScores.length) * 10) / 10
     : null;
 
+  // A single-student lookup by design, but the name-collision tag needs
+  // to know about the student's classmates too — fetched here just for
+  // that, not persisted or returned beyond the tag itself.
+  const classmates = await prisma.student.findMany({
+    where: { currentClassId: exam.classId },
+    select: { id: true, firstName: true, lastName: true, admissionNumber: true },
+  });
+  const tags = buildNameDisambiguationTags(classmates);
+  const nameTag = tags.get(student.id) || '';
+
   return {
     exam,
-    student: { id: student.id, name: `${student.firstName} ${student.lastName}`, admissionNumber: student.admissionNumber },
+    student: { id: student.id, name: `${student.firstName} ${student.lastName}${nameTag}` },
     examSummary: { id: exam.id, name: exam.name, class: exam.class.name, term: exam.term.name, session: exam.term.session.name },
     rows,
     average,

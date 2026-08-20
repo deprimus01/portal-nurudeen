@@ -62,6 +62,11 @@ export interface Student {
   currentClassId?: string | null;
   studentGuardians: StudentGuardianLink[];
   user?: PortalUserSummary | null;
+  // Only present on GET /api/students list responses — empty string
+  // unless this student's name collides with another in the same class
+  // (or another never-yet-enrolled student), e.g. " · 2". See
+  // backend/src/lib/nameDisambiguation.js.
+  nameTag?: string;
 }
 
 export interface Subject {
@@ -149,7 +154,7 @@ export interface ReportCardRow {
 }
 
 export interface ReportCard {
-  student: { id: string; name: string; admissionNumber: string };
+  student: { id: string; name: string };
   exam: { id: string; name: string; class: string; term: string; session: string };
   rows: ReportCardRow[];
   average: number | null;
@@ -229,7 +234,6 @@ export interface Invoice {
 export interface Flag {
   studentId: string;
   studentName: string;
-  admissionNumber: string;
   className: string;
   type: 'ATTENDANCE_DECLINE' | 'PERFORMANCE_DECLINE';
   severity: 'MEDIUM' | 'HIGH';
@@ -382,7 +386,6 @@ export interface ImportRecordMappedData {
   firstName: string;
   lastName: string;
   otherNames?: string | null;
-  admissionNumber: string;
   dateOfBirth: string | null;
   gender: 'MALE' | 'FEMALE' | null;
   classInput: string | null;
@@ -444,4 +447,25 @@ export interface ImportCommitResult {
   skippedCount: number;
   failedCount: number;
   failedRows: { rowNumber: number; reason: string }[];
+}
+
+// Backs GET /api/dashboard/summary — the admin dashboard's stat cards and
+// OnboardingSetup's step-completion checks both read from this single
+// response instead of each fetching their own full record lists.
+export interface DashboardSummary {
+  counts: {
+    students: number;
+    staff: number;
+    guardians: number;
+    classes: number;
+    subjects: number;
+  };
+  setup: {
+    hasSession: boolean;
+    hasTerm: boolean;
+    hasClasses: boolean;
+    hasSubjects: boolean;
+    hasStaff: boolean;
+    hasStudents: boolean;
+  };
 }

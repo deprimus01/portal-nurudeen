@@ -5,6 +5,7 @@ import { logAction } from '../lib/auditLog.js';
 import { computeReportCard } from '../lib/reportCard.js';
 import { assertCanViewStudentRecord } from '../lib/guardianOwnership.js';
 import { notifyResultsPublished } from '../lib/notifications.js';
+import { buildNameDisambiguationTags } from '../lib/nameDisambiguation.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { markResultsSchema } from '../validation/results.schema.js';
@@ -65,9 +66,13 @@ router.get(
     });
     const scoreByStudent = new Map(existingResults.map((r) => [r.studentId, r.score]));
 
+    // Roster is already scoped to one class (exam.classId), so no
+    // per-student class key needed — every row is in the same class.
+    const tags = buildNameDisambiguationTags(enrollments.map((e) => e.student));
+
     const roster = enrollments.map((e) => ({
       studentId: e.student.id,
-      admissionNumber: e.student.admissionNumber,
+      nameTag: tags.get(e.student.id) || '',
       firstName: e.student.firstName,
       lastName: e.student.lastName,
       score: scoreByStudent.has(e.student.id) ? scoreByStudent.get(e.student.id) : null,

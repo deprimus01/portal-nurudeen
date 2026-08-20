@@ -1,4 +1,5 @@
 import { prisma } from './prisma.js';
+import { buildNameDisambiguationTags } from './nameDisambiguation.js';
 
 // Phase 7 — "Attendance/performance flagging: proactive 'this student is
 // trending down' alerts." Deliberately rule-based rather than LLM-based:
@@ -46,7 +47,7 @@ async function activeStudentsInScope(classIds) {
   return { term, students: enrollments.map((e) => ({ ...e.student, className: e.class.name, classId: e.classId })) };
 }
 
-async function attendanceFlags(students) {
+async function attendanceFlags(students, tags) {
   if (students.length === 0) return [];
   const studentIds = students.map((s) => s.id);
 
@@ -78,8 +79,7 @@ async function attendanceFlags(students) {
     if (drop >= ATTENDANCE_DECLINE_THRESHOLD) {
       flags.push({
         studentId: student.id,
-        studentName: `${student.firstName} ${student.lastName}`,
-        admissionNumber: student.admissionNumber,
+        studentName: `${student.firstName} ${student.lastName}${tags.get(student.id) || ''}`,
         className: student.className,
         type: 'ATTENDANCE_DECLINE',
         severity: drop >= 0.4 ? 'HIGH' : 'MEDIUM',
@@ -91,7 +91,7 @@ async function attendanceFlags(students) {
   return flags;
 }
 
-async function performanceFlags(students) {
+async function performanceFlags(students, tags) {
   if (students.length === 0) return [];
   const studentIds = students.map((s) => s.id);
   const classIds = [...new Set(students.map((s) => s.classId))];
@@ -145,8 +145,7 @@ async function performanceFlags(students) {
     if (drop >= PERFORMANCE_DECLINE_THRESHOLD) {
       flags.push({
         studentId: student.id,
-        studentName: `${student.firstName} ${student.lastName}`,
-        admissionNumber: student.admissionNumber,
+        studentName: `${student.firstName} ${student.lastName}${tags.get(student.id) || ''}`,
         className: student.className,
         type: 'PERFORMANCE_DECLINE',
         severity: drop >= 25 ? 'HIGH' : 'MEDIUM',
@@ -167,7 +166,13 @@ export async function computeFlags(classIds) {
     return { term: null, flags: [], note: 'No current term is set. Set one under Sessions & Terms first.' };
   }
 
-  const [attendance, performance] = await Promise.all([attendanceFlags(students), performanceFlags(students)]);
+  // Scoped per class — flags can span multiple classes at once (Admin
+  // with no filter, or a teacher assigned to several), and two students
+  // sharing a name is only meaningful as a collision within the same
+  // class, not across different ones.
+  const tags = buildNameDisambiguationTags(students, { classKeyOf: (s) => s.classId });
+
+  const [attendance, performance] = await Promise.all([attendanceFlags(students, tags), performanceFlags(students, tags)]);
 
   const flags = [...attendance, ...performance].sort((a, b) => {
     if (a.severity !== b.severity) return a.severity === 'HIGH' ? -1 : 1;

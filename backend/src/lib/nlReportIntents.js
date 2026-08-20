@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { prisma } from './prisma.js';
+import { buildNameDisambiguationTags } from './nameDisambiguation.js';
 
 // Phase 7 — "Admin natural-language reporting... deliberately deferred: a
 // real injection/scope-leak risk that needs more careful design." This is
@@ -74,6 +75,18 @@ export const INTENTS = {
         byStudent.get(r.studentId).push(r);
       }
 
+      // Scoped per class - this report can span multiple classes at once
+      // (no classHint given), and a name only needs a tag if it collides
+      // with a classmate, not a same-named student elsewhere in the
+      // school. Enrollment.classId (not the student's possibly-different
+      // current class) is the source of truth for "which class this
+      // report is evaluating them in."
+      const classIdByStudentId = new Map(enrollments.map((e) => [e.studentId, e.classId]));
+      const tags = buildNameDisambiguationTags(
+        enrollments.map((e) => e.student),
+        { classKeyOf: (s) => classIdByStudentId.get(s.id) },
+      );
+
       const rows = [];
       for (const e of enrollments) {
         const recs = byStudent.get(e.studentId) || [];
@@ -82,8 +95,7 @@ export const INTENTS = {
         const ratePercent = Math.round(rate * 100);
         if (ratePercent < params.thresholdPercent) {
           rows.push({
-            name: `${e.student.firstName} ${e.student.lastName}`,
-            admissionNumber: e.student.admissionNumber,
+            name: `${e.student.firstName} ${e.student.lastName}${tags.get(e.studentId) || ''}`,
             className: e.class.name,
             attendancePercent: ratePercent,
           });
@@ -143,13 +155,17 @@ export const INTENTS = {
       const students = await prisma.student.findMany({ where: { id: { in: studentIds } } });
       const studentById = new Map(students.map((s) => [s.id, s]));
 
+      // A single exam belongs to a single class, so every student here is
+      // already in the same class — no per-student class key needed.
+      const tags = buildNameDisambiguationTags(students);
+
       const rows = [];
       for (const [studentId, scores] of byStudent) {
         const average = scores.reduce((a, b) => a + b, 0) / scores.length;
         if (average < params.thresholdScore) {
           const s = studentById.get(studentId);
           if (!s) continue;
-          rows.push({ name: `${s.firstName} ${s.lastName}`, admissionNumber: s.admissionNumber, average: Math.round(average * 10) / 10 });
+          rows.push({ name: `${s.firstName} ${s.lastName}${tags.get(studentId) || ''}`, average: Math.round(average * 10) / 10 });
         }
       }
       rows.sort((a, b) => a.average - b.average);
@@ -186,12 +202,19 @@ export const INTENTS = {
         include: { student: { include: { currentClass: true } }, payments: true },
       });
 
+      // Scoped per class - can span the whole school when no classHint is
+      // given, so a name only needs a tag if it collides with a
+      // classmate, not a same-named student in a different class.
+      const tags = buildNameDisambiguationTags(
+        invoices.map((inv) => inv.student),
+        { classKeyOf: (s) => s.currentClassId },
+      );
+
       const rows = invoices.map((inv) => {
         const paid = inv.payments.reduce((sum, p) => sum + p.amount, 0);
         const outstandingNaira = Math.round((inv.amount - paid) / 100);
         return {
-          name: `${inv.student.firstName} ${inv.student.lastName}`,
-          admissionNumber: inv.student.admissionNumber,
+          name: `${inv.student.firstName} ${inv.student.lastName}${tags.get(inv.student.id) || ''}`,
           className: inv.student.currentClass?.name || 'Unassigned',
           outstandingNaira,
           status: inv.status,

@@ -16,7 +16,6 @@ interface LinkedStudent {
   student: {
     firstName: string;
     lastName: string;
-    admissionNumber?: string;
     currentClass?: { name: string } | null;
   };
 }
@@ -28,7 +27,6 @@ interface SettingsProfile {
   email?: string | null;
   address?: string | null;
   employeeId?: string;
-  admissionNumber?: string;
   currentClass?: { name: string } | null;
   studentGuardians?: LinkedStudent[];
 }
@@ -216,14 +214,6 @@ export function SettingsView({ roleLabel }: { roleLabel: string }) {
                     <User size={13} /> Employee ID
                   </span>
                   <span className="settings-detail-value">{profile.employeeId}</span>
-                </div>
-              )}
-              {profile?.admissionNumber && (
-                <div className="settings-detail">
-                  <span className="settings-detail-label">
-                    <User size={13} /> Admission No.
-                  </span>
-                  <span className="settings-detail-value">{profile.admissionNumber}</span>
                 </div>
               )}
               {profile?.currentClass?.name && (

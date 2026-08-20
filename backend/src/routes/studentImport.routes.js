@@ -288,7 +288,6 @@ router.patch(
     if (body.firstName !== undefined) merged.firstName = body.firstName;
     if (body.lastName !== undefined) merged.lastName = body.lastName;
     if (body.otherNames !== undefined) merged.otherNames = body.otherNames;
-    if (body.admissionNumber !== undefined) merged.admissionNumber = body.admissionNumber;
     if (body.dateOfBirth !== undefined) merged.dateOfBirth = body.dateOfBirth.toISOString();
     if (body.gender !== undefined) merged.gender = body.gender;
     if (body.guardianFirstName !== undefined) merged.guardianFirstName = body.guardianFirstName;
@@ -329,15 +328,15 @@ router.patch(
     const allIssues = [...issues];
     let matchedStudentId = null;
 
-    if (merged.admissionNumber && merged.matchedClassId) {
-      const exactDuplicate = await findExactDbDuplicate(prisma, merged.admissionNumber, merged.matchedClassId);
+    if (merged.firstName && merged.lastName && merged.matchedClassId) {
+      const exactDuplicate = await findExactDbDuplicate(prisma, merged.firstName, merged.lastName, merged.matchedClassId);
       if (exactDuplicate) {
-        status = 'ERROR';
         matchedStudentId = exactDuplicate.id;
+        if (status === 'OK') status = 'WARNING';
         allIssues.push({
-          field: 'admissionNumber',
-          severity: 'error',
-          message: 'A student with this serial number already exists in this class.',
+          field: 'firstName',
+          severity: 'warning',
+          message: 'A student with this name already exists in this class — check this isn\'t a duplicate entry.',
         });
       } else if (merged.dateOfBirth) {
         const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, {
@@ -351,11 +350,11 @@ router.patch(
           allIssues.push({
             field: 'firstName',
             severity: 'warning',
-            message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (serial ${fuzzyDuplicate.admissionNumber}). Review before importing.`,
+            message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName}. Review before importing.`,
           });
         }
       }
-    } else if (merged.admissionNumber && merged.dateOfBirth) {
+    } else if (merged.dateOfBirth) {
       const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, {
         firstName: merged.firstName,
         lastName: merged.lastName,
@@ -367,7 +366,7 @@ router.patch(
         allIssues.push({
           field: 'firstName',
           severity: 'warning',
-          message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (serial ${fuzzyDuplicate.admissionNumber}). Review before importing.`,
+          message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName}. Review before importing.`,
         });
       }
     }

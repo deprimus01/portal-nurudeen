@@ -18,7 +18,6 @@ const FIELD_DESCRIPTIONS = {
   firstName: 'student\u2019s first/given name',
   lastName: 'student\u2019s last/family name/surname',
   otherNames: 'student\u2019s middle name(s)',
-  admissionNumber: 'the student\u2019s serial number \u2014 a number assigned sequentially within their class (not a school-wide code)',
   dateOfBirth: 'student\u2019s date of birth',
   gender: 'student\u2019s gender/sex',
   className: 'the class/form/grade the student is in',

@@ -5,6 +5,7 @@ import { logAction } from '../lib/auditLog.js';
 import { assertCanActOnClass } from '../lib/classAuthorization.js';
 import { assertCanViewStudentRecord } from '../lib/guardianOwnership.js';
 import { notifyAttendanceUpdate } from '../lib/notifications.js';
+import { buildNameDisambiguationTags } from '../lib/nameDisambiguation.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { markAttendanceSchema } from '../validation/attendance.schema.js';
@@ -54,15 +55,71 @@ router.get(
     });
     const recordsByStudent = new Map(existingRecords.map((r) => [r.studentId, r.status]));
 
+    // Roster is already scoped to a single class (classId in the query),
+    // so no per-student class key is needed here — every row is in the
+    // same class by construction.
+    const tags = buildNameDisambiguationTags(enrollments.map((e) => e.student));
+
     const roster = enrollments.map((e) => ({
       studentId: e.student.id,
-      admissionNumber: e.student.admissionNumber,
+      nameTag: tags.get(e.student.id) || '',
       firstName: e.student.firstName,
       lastName: e.student.lastName,
       status: recordsByStudent.get(e.student.id) || null,
     }));
 
     return res.json({ term, roster });
+  }),
+);
+
+// School-wide attendance summary for one date — backs the admin dashboard's
+// attendance widget, which previously called GET /roster once per class
+// (1 + N requests, N = number of classes) purely to sum up counts client
+// side. This computes the same numbers server-side with a fixed small set
+// of aggregate queries, so the request count no longer scales with the
+// number of classes in the school.
+router.get(
+  '/summary',
+  requireRole('ADMIN'),
+  asyncHandler(async (req, res) => {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ error: 'date is required.' });
+    }
+    const day = startOfDay(date);
+
+    const term = await prisma.term.findFirst({ where: { isCurrent: true } });
+
+    // No current term set — mirror the roster endpoint's graceful
+    // per-class failure (the widget previously just showed an empty
+    // state in this case rather than surfacing an error).
+    if (!term) {
+      return res.json({ totalClasses: 0, classesMarked: 0, totalStudents: 0, counts: { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 } });
+    }
+
+    const [totalClasses, totalStudents, statusGroups, markedClasses] = await prisma.$transaction([
+      prisma.class.count(),
+      // Same population the old per-class roster loop summed up:
+      // active enrollments in the current term, across every class.
+      prisma.enrollment.count({ where: { termId: term.id, status: 'ACTIVE' } }),
+      // Not scoped to classId — the old client code didn't filter
+      // existing records by class either (a student's attendance record
+      // for the day was counted regardless of which class fetched it).
+      prisma.attendanceRecord.groupBy({ by: ['status'], where: { date: day }, _count: { _all: true } }),
+      prisma.attendanceRecord.findMany({ where: { date: day }, distinct: ['classId'], select: { classId: true } }),
+    ]);
+
+    const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 };
+    for (const g of statusGroups) {
+      counts[g.status] = g._count._all;
+    }
+
+    return res.json({
+      totalClasses,
+      classesMarked: markedClasses.length,
+      totalStudents,
+      counts,
+    });
   }),
 );
 

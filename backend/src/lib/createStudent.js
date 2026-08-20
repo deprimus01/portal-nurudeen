@@ -1,5 +1,25 @@
 import { hashPassword, generateTempPassword } from './auth.js';
 
+// admissionNumber is purely an internal DB uniqueness key now — this
+// school doesn't track admission/serial numbers, so no form ever collects
+// one. Auto-assigns the next available number within the student's class
+// (same "auto-assign, never hand-typed" pattern as Class.sortOrder).
+// Students with no class yet (currentClassId null) are numbered against
+// each other in their own null-class bucket - Postgres treats each NULL
+// as distinct for the [currentClassId, admissionNumber] unique index
+// anyway, so this is just for a stable, readable value, not correctness.
+async function nextAdmissionNumber(tx, currentClassId) {
+  const classmates = await tx.student.findMany({
+    where: { currentClassId: currentClassId ?? null },
+    select: { admissionNumber: true },
+  });
+  const highest = classmates.reduce((max, s) => {
+    const n = parseInt(s.admissionNumber, 10);
+    return Number.isFinite(n) && n > max ? n : max;
+  }, 0);
+  return String(highest + 1);
+}
+
 // Creates one Student, links/creates its Guardian(s), and auto-provisions a
 // portal account per guardian who doesn't already have one.
 //
@@ -25,7 +45,8 @@ import { hashPassword, generateTempPassword } from './auth.js';
 // required fields for a new inline guardian; unknown guardianId) — callers
 // should let these propagate to asyncHandler/errorHandler as before.
 export async function createStudentWithGuardians(tx, { guardians, ...studentData }) {
-  const student = await tx.student.create({ data: studentData });
+  const admissionNumber = studentData.admissionNumber ?? (await nextAdmissionNumber(tx, studentData.currentClassId));
+  const student = await tx.student.create({ data: { ...studentData, admissionNumber } });
 
   const provisionedCredentials = [];
 

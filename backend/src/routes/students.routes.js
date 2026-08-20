@@ -8,6 +8,8 @@ import { notifyNewAccount, notifyNewStudentAccount, findNotifiableGuardianForStu
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody, asyncHandler } from '../middleware/errorHandler.js';
 import { createStudentSchema, updateStudentSchema } from '../validation/student.schema.js';
+import { generateStudentLoginEmail } from '../lib/studentLogin.js';
+import { buildNameDisambiguationTags } from '../lib/nameDisambiguation.js';
 
 const router = Router();
 
@@ -19,29 +21,76 @@ const studentInclude = {
   user: { select: { id: true, email: true, mustResetPassword: true, lastLoginAt: true } },
 };
 
+function buildOrderBy(sortKey, sortDir) {
+  const desc = sortDir === 'desc';
+  switch (sortKey) {
+    case 'class':
+      return [{ currentClass: { name: desc ? 'desc' : 'asc' } }];
+    case 'status':
+      return [{ status: desc ? 'desc' : 'asc' }];
+    case 'name':
+    default:
+      return [{ lastName: desc ? 'desc' : 'asc' }, { firstName: desc ? 'desc' : 'asc' }];
+  }
+}
+
 router.get(
   '/',
   requireRole('ADMIN', 'TEACHER'),
   asyncHandler(async (req, res) => {
-    const { search, classId, status } = req.query;
+    const { search, classId, status, page, pageSize, sortKey, sortDir } = req.query;
 
-    const students = await prisma.student.findMany({
-      where: {
-        status: status || undefined,
-        currentClassId: classId || undefined,
-        OR: search
-          ? [
-              { firstName: { contains: search, mode: 'insensitive' } },
-              { lastName: { contains: search, mode: 'insensitive' } },
-              { admissionNumber: { contains: search, mode: 'insensitive' } },
-            ]
-          : undefined,
-      },
-      include: studentInclude,
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-    });
+    const where = {
+      status: status || undefined,
+      currentClassId: classId || undefined,
+      OR: search
+        ? [
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+          ]
+        : undefined,
+    };
 
-    return res.json(students);
+    // Legacy contract: no `page` param -> full unpaginated array, exactly
+    // as this endpoint has always behaved. Nothing currently calls it
+    // this way except the Enrollments picker's own smaller-scope search,
+    // but keeping it means nothing depending on the old shape breaks
+    // while the Students page migrates to the paginated contract below.
+    if (!page) {
+      const students = await prisma.student.findMany({
+        where,
+        include: studentInclude,
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      });
+      const tags = buildNameDisambiguationTags(students, { classKeyOf: (s) => s.currentClassId });
+      const withTags = students.map((s) => ({ ...s, nameTag: tags.get(s.id) || '' }));
+      return res.json(withTags);
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const take = Math.min(100, Math.max(1, parseInt(pageSize, 10) || 10));
+    const skip = (pageNum - 1) * take;
+    const orderBy = buildOrderBy(sortKey, sortDir);
+
+    const [total, students, allMatchingForTags] = await prisma.$transaction([
+      prisma.student.count({ where }),
+      prisma.student.findMany({ where, include: studentInclude, orderBy, skip, take }),
+      // A second, much lighter pass (3 scalar fields, no joins) over
+      // every student matching the current search/filter — not just this
+      // page — so name-collision tags ("John Doe · 2") stay correct even
+      // when the two colliding students land on different pages. Without
+      // this, disambiguation would silently only work within a single
+      // page of results.
+      prisma.student.findMany({
+        where,
+        select: { id: true, firstName: true, lastName: true, currentClassId: true, admissionNumber: true },
+      }),
+    ]);
+
+    const tags = buildNameDisambiguationTags(allMatchingForTags, { classKeyOf: (s) => s.currentClassId });
+    const withTags = students.map((s) => ({ ...s, nameTag: tags.get(s.id) || '' }));
+
+    return res.json({ data: withTags, total, page: pageNum, pageSize: take });
   }),
 );
 
@@ -145,11 +194,12 @@ router.delete(
 // auto-created on enrollment like guardian accounts — admin provisions one
 // on request. Students have no email field in the schema (most won't have
 // one), so the login identifier is a synthetic address derived from their
-// admission number on the school's own domain — never a real mailbox, just
-// a stable, unique login handle reusing the existing email+password auth
-// flow without changes. The OTP itself IS delivered automatically though —
-// relayed to the student's guardian (see findNotifiableGuardianForStudent),
-// since that's the only real inbox/phone on file for a student.
+// name — see lib/studentLogin.js for the exact rule and the reasoning
+// behind it. Never a real mailbox, just a stable, unique login handle
+// reusing the existing email+password auth flow without changes. The OTP
+// itself IS delivered automatically though — relayed to the student's
+// guardian (see findNotifiableGuardianForStudent), since that's the only
+// real inbox/phone on file for a student.
 router.post(
   '/:id/provision-account',
   requireRole('ADMIN'),
@@ -162,14 +212,7 @@ router.post(
       return res.status(409).json({ error: 'This student already has a portal account.' });
     }
 
-    // Login domain is configurable so this doesn't need a code change once
-    // the real domain is purchased and connected — just set
-    // STUDENT_LOGIN_EMAIL_DOMAIN on the deployment and it takes effect
-    // immediately. Defaults to a clearly non-resolving placeholder for
-    // now; this address is never actually emailed to (see comment above
-    // this route) — it's just the login handle, not a delivery target.
-    const loginDomain = process.env.STUDENT_LOGIN_EMAIL_DOMAIN || 'students.portal.local';
-    const loginEmail = `${student.admissionNumber.toLowerCase()}@${loginDomain}`;
+    const loginEmail = await generateStudentLoginEmail(prisma, student.firstName, student.lastName);
     const tempPassword = generateTempPassword();
     const passwordHash = await hashPassword(tempPassword);
 

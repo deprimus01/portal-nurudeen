@@ -41,7 +41,6 @@ export interface ImportRecordCorrection {
   firstName?: string;
   lastName?: string;
   otherNames?: string;
-  admissionNumber?: string;
   dateOfBirth?: string;
   gender?: 'MALE' | 'FEMALE';
   classId?: string;

@@ -14,7 +14,6 @@ export const FIELD_SLOTS = [
   'firstName',
   'lastName',
   'otherNames',
-  'admissionNumber',
   'dateOfBirth',
   'gender',
   'className',
@@ -29,12 +28,20 @@ export const FIELD_SLOTS = [
 // Each synonym is matched after normalization (see normalizeHeader below),
 // so entries here don't need every spacing/punctuation variant spelled
 // out — "Adm No" and "adm. no." both normalize to "admno".
+//
+// Deliberately no `admissionNumber` slot: this school doesn't track
+// admission/serial numbers, and any S/N-looking column in an imported
+// file (especially OCR'd paper registers) is just that document's row
+// order, not a stable identifier — see lib/createStudent.js's
+// nextAdmissionNumber(), which auto-generates a fresh one for every
+// imported student the same way it does for manually-created ones.
+// Leaving this unmapped means such a column always lands in `unmapped`
+// and is simply ignored, never accidentally used.
 const SYNONYMS = {
   fullName: ['studentname', 'pupilname', 'fullname', 'name', 'childname'],
   firstName: ['firstname', 'fname', 'givenname'],
   lastName: ['lastname', 'lname', 'surname', 'familyname'],
   otherNames: ['othernames', 'middlename', 'othername'],
-  admissionNumber: ['serialnumber', 'serialno', 'sno', 'sn', 'admissionnumber', 'admissionno', 'admno', 'admnumber', 'regno', 'registrationnumber', 'studentid'],
   dateOfBirth: ['dateofbirth', 'dob', 'birthdate', 'birthday'],
   gender: ['gender', 'sex'],
   className: ['class', 'form', 'grade', 'currentclass', 'classform'],

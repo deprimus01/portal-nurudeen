@@ -13,7 +13,6 @@ const FIELD_LABELS: Record<string, string> = {
   firstName: 'First Name',
   lastName: 'Last Name',
   otherNames: 'Other Names',
-  admissionNumber: 'Serial Number',
   dateOfBirth: 'Date of Birth',
   gender: 'Gender',
   classInput: 'Class',
@@ -30,7 +29,7 @@ const FIELD_LABELS: Record<string, string> = {
 // RecordEditor — shown read-only in this view with a note to use
 // "Correct" for that field instead.
 const EDITABLE_TEXT_FIELDS = new Set([
-  'firstName', 'lastName', 'otherNames', 'admissionNumber',
+  'firstName', 'lastName', 'otherNames',
   'guardianFirstName', 'guardianLastName', 'guardianPhone', 'guardianEmail',
 ]);
 

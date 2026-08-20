@@ -94,15 +94,22 @@ frontend/   Next.js (App Router) + TypeScript admin/teacher portal (deploy to Ve
   parents: Student No").
 - **Student account provisioning** - new, and different from every other
   role: students have no email field in the schema (most won't have a
-  personal one), so a Student's login is a synthetic address on a
-  configurable placeholder domain (`STUDENT_LOGIN_EMAIL_DOMAIN`, defaults
-  to `students.portal.local` until the real domain exists - see
-  Deployment) - a stable unique login handle, not a real mailbox. Because
-  of that, account creation deliberately does **not** trigger
-  `notifyNewAccount` the way guardian/staff provisioning does (sending to
-  a fake address would just fail); the temp password is only ever shown
-  once in the admin UI, same as before email delivery existed for the
-  other roles. Admin triggers this per-student from the Students page
+  personal one), so a Student's login is a synthetic address built from
+  their name - `firstnamelastname@student.nurudeen` (lowercased, spaces/
+  hyphens/apostrophes stripped, incrementing number appended on a
+  school-wide collision - see `lib/studentLogin.js`), on a configurable
+  domain (`STUDENT_LOGIN_EMAIL_DOMAIN`, defaults to `student.nurudeen`
+  until the real domain exists - see Deployment) - a stable unique login
+  handle, not a real mailbox. Frozen at creation - never regenerated on
+  class promotion or a later name correction. This school doesn't track
+  admission/serial numbers at all, so `admissionNumber` is purely an
+  internal, auto-generated DB uniqueness key now - never shown or entered
+  anywhere in the UI. Because the login isn't a real mailbox, account
+  creation deliberately does **not** trigger `notifyNewAccount` the way
+  guardian/staff provisioning does (sending to a fake address would just
+  fail); the temp password is only ever shown once in the admin UI, same
+  as before email delivery existed for the other roles. Admin triggers
+  this per-student from the Students page
   ("Provision" button per row).
 - **AI Assistant (Phase 7)** - now covers all five PRD-listed features, via
   Groq (`llama-3.3-70b-versatile`), using a **separate API key from the

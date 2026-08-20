@@ -57,7 +57,7 @@ export function ReportCardView({ report, allowPrint = true }: { report: ReportCa
               {report.student.name}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-              {report.student.admissionNumber} · {report.exam.class}
+              {report.exam.class}
             </div>
           </div>
         </div>

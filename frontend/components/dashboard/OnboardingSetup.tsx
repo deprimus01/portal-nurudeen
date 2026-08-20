@@ -17,16 +17,11 @@ import {
   PartyPopper,
   type LucideIcon,
 } from 'lucide-react';
-import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
-import type { AcademicSession, SchoolClass, Staff, Student } from '../../lib/types';
+import type { DashboardSummary } from '../../lib/types';
 import { ErrorState } from '../ui/ErrorState';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-
-interface Subject {
-  id: string;
-}
 
 type StepStatus = 'locked' | 'incomplete' | 'in-progress' | 'completed';
 
@@ -41,13 +36,7 @@ interface StepDef {
   lockActionHref?: string;
 }
 
-interface SetupData {
-  sessions: AcademicSession[];
-  classes: SchoolClass[];
-  subjects: Subject[];
-  staff: Staff[];
-  students: Student[];
-}
+type SetupBooleans = DashboardSummary['setup'];
 
 function skipKey(userId?: string) {
   return `nuruddeen_onboarding_skipped_${userId || 'admin'}`;
@@ -56,13 +45,8 @@ function ackKey(userId?: string) {
   return `nuruddeen_onboarding_ack_${userId || 'admin'}`;
 }
 
-function buildSteps(data: SetupData): StepDef[] {
-  const hasSession = data.sessions.length > 0;
-  const hasTerm = data.sessions.some((s) => (s.terms?.length ?? 0) > 0);
-  const hasClasses = data.classes.length > 0;
-  const hasSubjects = data.subjects.length > 0;
-  const hasStaff = data.staff.length > 0;
-  const hasStudents = data.students.length > 0;
+function buildSteps(data: SetupBooleans): StepDef[] {
+  const { hasSession, hasTerm, hasClasses, hasSubjects, hasStaff, hasStudents } = data;
 
   return [
     {
@@ -117,12 +101,19 @@ const STATUS_LABEL: Record<StepStatus, string> = {
   completed: 'Completed',
 };
 
-export function OnboardingSetup() {
+interface OnboardingSetupProps {
+  /** Setup-progress booleans from the shared /api/dashboard/summary
+   *  request (fetched once by the parent dashboard page) — null while
+   *  that request is still in flight. */
+  setup: SetupBooleans | null;
+  error: boolean;
+  onRetry: () => void;
+}
+
+export function OnboardingSetup({ setup, error, onRetry }: OnboardingSetupProps) {
   const { user } = useAuth();
   const reduceMotion = useReducedMotion();
 
-  const [data, setData] = useState<SetupData | null>(null);
-  const [error, setError] = useState(false);
   const [skipped, setSkipped] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
   const [justCompletedStep, setJustCompletedStep] = useState<string | null>(null);
@@ -135,27 +126,7 @@ export function OnboardingSetup() {
     setAcknowledged(window.localStorage.getItem(ackKey(user?.id)) === 'true');
   }, [user?.id]);
 
-  const load = () => {
-    setError(false);
-    Promise.all([
-      api.get<AcademicSession[]>('/api/academic/sessions'),
-      api.get<SchoolClass[]>('/api/classes'),
-      api.get<Subject[]>('/api/subjects'),
-      api.get<Staff[]>('/api/staff'),
-      api.get<Student[]>('/api/students'),
-    ])
-      .then(([sessions, classes, subjects, staff, students]) => {
-        setData({ sessions, classes, subjects, staff, students });
-      })
-      .catch(() => setError(true));
-  };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const steps = useMemo(() => (data ? buildSteps(data) : null), [data]);
+  const steps = useMemo(() => (setup ? buildSteps(setup) : null), [setup]);
   const completedCount = steps ? steps.filter((s) => s.status === 'completed').length : 0;
   const allDone = steps ? completedCount === steps.length : false;
 
@@ -202,14 +173,14 @@ export function OnboardingSetup() {
         <ErrorState
           kind="server"
           description="Couldn't load your setup progress. Please try again."
-          onRetry={load}
+          onRetry={onRetry}
           compact
         />
       </div>
     );
   }
 
-  if (!data || !steps) {
+  if (!setup || !steps) {
     return (
       <div className="panel onboarding-panel">
         <div className="onboarding-skeleton">

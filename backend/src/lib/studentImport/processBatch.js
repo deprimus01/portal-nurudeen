@@ -25,7 +25,6 @@ function serializeMappedData(m) {
     firstName: m.firstName,
     lastName: m.lastName,
     otherNames: m.otherNames || null,
-    admissionNumber: m.admissionNumber,
     dateOfBirth: m.dateOfBirth ? m.dateOfBirth.toISOString() : null,
     gender: m.gender,
     classInput: m.classInput || null,
@@ -69,12 +68,10 @@ export async function processImportBatch(batchId, fileBuffer, fileExt, uploadedB
     const classes = await prisma.class.findMany();
     const mappedRows = rawRows.map((raw) => mapRawRow(raw, finalMapping));
 
-    // Class must be resolved before duplicate detection, since serial
-    // numbers are only unique *within* a class (e.g. "3" legitimately
-    // exists in both JSS1 and JSS2) — the old flow ran duplicate
-    // detection first using bare serial numbers, which would have
-    // wrongly flagged every same-numbered row across different classes
-    // as a collision.
+    // Class must be resolved before duplicate detection, since name
+    // collisions are only meaningfully scoped *within* a class (e.g. two
+    // "John Doe"s legitimately exist in different classes without being
+    // duplicates of each other).
     const classResolvedRows = mappedRows.map((mapped) => {
       const { class: matchedClass } = matchClass(mapped.classInput, classes);
       return { ...mapped, matchedClass, matchedClassId: matchedClass?.id || null };
@@ -97,21 +94,21 @@ export async function processImportBatch(batchId, fileBuffer, fileExt, uploadedB
       let matchedStudentId = null;
 
       if (inFileDuplicateIndices.has(i)) {
-        status = 'ERROR';
+        if (status === 'OK') status = 'WARNING';
         allIssues.push({
-          field: 'admissionNumber',
-          severity: 'error',
-          message: 'This serial number appears more than once in this class within the file.',
+          field: 'firstName',
+          severity: 'warning',
+          message: 'This name appears more than once in this class within the file — check these aren\'t the same student entered twice.',
         });
-      } else if (resolved.admissionNumber && resolved.matchedClassId) {
-        const exactDuplicate = await findExactDbDuplicate(prisma, resolved.admissionNumber, resolved.matchedClassId);
+      } else if (resolved.firstName && resolved.lastName && resolved.matchedClassId) {
+        const exactDuplicate = await findExactDbDuplicate(prisma, resolved.firstName, resolved.lastName, resolved.matchedClassId);
         if (exactDuplicate) {
-          status = 'ERROR';
           matchedStudentId = exactDuplicate.id;
+          if (status === 'OK') status = 'WARNING';
           allIssues.push({
-            field: 'admissionNumber',
-            severity: 'error',
-            message: 'A student with this serial number already exists in this class.',
+            field: 'firstName',
+            severity: 'warning',
+            message: 'A student with this name already exists in this class — check this isn\'t a duplicate entry.',
           });
         } else if (resolved.dateOfBirth) {
           const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, resolved);
@@ -121,15 +118,15 @@ export async function processImportBatch(batchId, fileBuffer, fileExt, uploadedB
             allIssues.push({
               field: 'firstName',
               severity: 'warning',
-              message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (serial ${fuzzyDuplicate.admissionNumber}). Review before importing.`,
+              message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName}. Review before importing.`,
             });
           }
         }
-      } else if (resolved.admissionNumber && resolved.dateOfBirth) {
+      } else if (resolved.dateOfBirth) {
         // Class didn't resolve — the row is already ERROR-flagged for
-        // that by validateMappedRow, and a per-class serial-number check
-        // isn't meaningful without a class. Fuzzy name+DOB matching still
-        // runs since it doesn't depend on class/serial at all.
+        // that by validateMappedRow, and a per-class name check isn't
+        // meaningful without a class. Fuzzy name+DOB matching still runs
+        // since it doesn't depend on class at all.
         const fuzzyDuplicate = await findFuzzyDbDuplicate(prisma, resolved);
         if (fuzzyDuplicate) {
           matchedStudentId = fuzzyDuplicate.id;
@@ -137,7 +134,7 @@ export async function processImportBatch(batchId, fileBuffer, fileExt, uploadedB
           allIssues.push({
             field: 'firstName',
             severity: 'warning',
-            message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName} (serial ${fuzzyDuplicate.admissionNumber}). Review before importing.`,
+            message: `Possible duplicate of existing student ${fuzzyDuplicate.firstName} ${fuzzyDuplicate.lastName}. Review before importing.`,
           });
         }
       }

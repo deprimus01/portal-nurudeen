@@ -9,7 +9,7 @@ import {
   Users,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-import type { Student, Staff, SchoolClass, Guardian } from '../../lib/types';
+import type { DashboardSummary } from '../../lib/types';
 import { StatCard } from '../../components/ui/StatCard';
 import { WelcomeCard } from '../../components/ui/WelcomeCard';
 import { useAuth } from '../../lib/auth-context';
@@ -21,40 +21,30 @@ import { AdminAttendanceWidget } from '../../components/dashboard/AdminAttendanc
 import { RecentAnnouncementsWidget } from '../../components/dashboard/RecentAnnouncementsWidget';
 import { OnboardingSetup } from '../../components/dashboard/OnboardingSetup';
 
-interface Subject {
-  id: string;
-}
-
 export default function AdminDashboardPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const profile = user?.profile as { firstName?: string; lastName?: string } | null;
-  const [counts, setCounts] = useState<{
-    students: number;
-    staff: number;
-    guardians: number;
-    classes: number;
-    subjects: number;
-  } | null>(null);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [summaryError, setSummaryError] = useState(false);
+  const counts = summary?.counts ?? null;
+
+  // Single lightweight COUNT-backed request replaces what used to be 10
+  // full-list fetches split across this page and OnboardingSetup
+  // (students/staff/guardians/classes/subjects/sessions, each fetched
+  // once for stat cards and again for setup-progress checks) — see
+  // backend/src/routes/dashboard.routes.js. OnboardingSetup no longer
+  // fetches on its own; it reads `summary.setup` from this same request.
+  function loadSummary() {
+    setSummaryError(false);
+    api
+      .get<DashboardSummary>('/api/dashboard/summary')
+      .then(setSummary)
+      .catch(() => setSummaryError(true));
+  }
 
   useEffect(() => {
-    Promise.all([
-      api.get<Student[]>('/api/students'),
-      api.get<Staff[]>('/api/staff'),
-      api.get<Guardian[]>('/api/guardians').catch(() => []),
-      api.get<SchoolClass[]>('/api/classes'),
-      api.get<Subject[]>('/api/subjects').catch(() => []),
-    ])
-      .then(([students, staff, guardians, classes, subjects]) =>
-        setCounts({
-          students: students.length,
-          staff: staff.length,
-          guardians: guardians.length,
-          classes: classes.length,
-          subjects: subjects.length,
-        }),
-      )
-      .catch(() => setCounts({ students: 0, staff: 0, guardians: 0, classes: 0, subjects: 0 }));
+    loadSummary();
   }, []);
 
   return (
@@ -82,7 +72,7 @@ export default function AdminDashboardPage() {
 
       <RecentAnnouncementsWidget href="/admin/announcements" />
 
-      <OnboardingSetup />
+      <OnboardingSetup setup={summary?.setup ?? null} error={summaryError} onRetry={loadSummary} />
     </div>
   );
 }

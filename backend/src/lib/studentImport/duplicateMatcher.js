@@ -1,18 +1,19 @@
-// Duplicate detection, three tiers (PRD/TRD §6.1):
-//   1. In-file — same serial number appears twice within the *same class*
-//      in the uploaded file. Serial numbers are only unique per class
-//      (e.g. "3" legitimately exists in both JSS1 and JSS2) — see the
-//      Student.@@unique([currentClassId, admissionNumber]) constraint.
-//   2. Exact DB — a student with that serial number already exists in
-//      that same class.
+// Duplicate detection (PRD/TRD §6.1), revised for a school with no
+// admission/serial numbers:
+//   1. In-file — same name appears twice within the *same class* in the
+//      uploaded file.
+//   2. Exact DB — a student with that exact name already exists in that
+//      same class.
 //   3. Fuzzy DB — close name match + exact date-of-birth match against an
 //      existing student, for records that likely refer to the same person
-//      under a slightly different spelling. Unaffected by the per-class
-//      scoping change since it never keys off serial number.
+//      under a slightly different spelling.
 //
-// Fuzzy matching only ever produces a WARNING the user must explicitly
-// confirm or skip — it never blocks a row outright the way an exact
-// serial-number collision does, since it can be a false positive.
+// Crucially, none of these tiers can be a hard, guaranteed identity match
+// anymore the way an admission-number collision was — two genuinely
+// different students legitimately sharing a name in the same class is
+// normal, expected data for this school, not an error. All three tiers
+// therefore only ever produce a WARNING the importer must explicitly
+// confirm or skip, never an automatic block.
 
 function levenshtein(a, b) {
   const m = a.length;
@@ -39,26 +40,25 @@ function normalizedName(firstName, lastName) {
   return `${firstName || ''} ${lastName || ''}`.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-// Flags in-file duplicate serial numbers *within the same class*. Rows
-// targeting different classes are never considered duplicates of each
-// other even if they share the same serial number — that's the expected,
-// normal case for this school. `classKey` should be the matched class id
-// when resolved, falling back to the normalized raw class text when it
-// isn't (so an unmatched-class row still gets meaningful in-file dedup
-// against other rows naming the same unmatched class text, rather than
-// silently skipping the check).
+// Flags in-file duplicate names *within the same class*. Rows targeting
+// different classes are never considered duplicates of each other even if
+// they share a name. `classKey` should be the matched class id when
+// resolved, falling back to the normalized raw class text when it isn't
+// (so an unmatched-class row still gets meaningful in-file dedup against
+// other rows naming the same unmatched class text, rather than silently
+// skipping the check).
 export function findInFileDuplicates(rows) {
-  const seen = new Map(); // `${classKey}::${serialNumber}` -> first row index seen
+  const seen = new Map(); // `${classKey}::${name}` -> first row index seen
   const duplicateIndices = new Set();
 
   rows.forEach((row, index) => {
-    const serialNumber = (row.admissionNumber || '').trim();
-    if (!serialNumber) return;
+    const name = normalizedName(row.firstName, row.lastName);
+    if (!name) return;
 
     const classKey = row.matchedClassId || (row.classInput || '').trim().toLowerCase();
     if (!classKey) return; // no class info at all — nothing meaningful to scope against
 
-    const key = `${classKey}::${serialNumber}`;
+    const key = `${classKey}::${name}`;
     if (seen.has(key)) {
       duplicateIndices.add(seen.get(key));
       duplicateIndices.add(index);
@@ -70,11 +70,18 @@ export function findInFileDuplicates(rows) {
   return duplicateIndices;
 }
 
-export async function findExactDbDuplicate(prisma, admissionNumber, classId) {
-  if (!admissionNumber || !classId) return null;
-  return prisma.student.findUnique({
-    where: { currentClassId_admissionNumber: { currentClassId: classId, admissionNumber } },
+// Exact (case-insensitive) name match within the same class — the closest
+// equivalent to the old admission-number exact-duplicate tier, but
+// necessarily a softer signal now: same name in the same class is
+// plausible real data, not proof of a duplicate.
+export async function findExactDbDuplicate(prisma, firstName, lastName, classId) {
+  if (!firstName || !lastName || !classId) return null;
+  const candidates = await prisma.student.findMany({
+    where: { currentClassId: classId },
+    select: { id: true, firstName: true, lastName: true, dateOfBirth: true },
   });
+  const target = normalizedName(firstName, lastName);
+  return candidates.find((c) => normalizedName(c.firstName, c.lastName) === target) || null;
 }
 
 // Sanity-bounded: only pulls students who share the same date of birth
@@ -87,7 +94,7 @@ export async function findFuzzyDbDuplicate(prisma, { firstName, lastName, dateOf
 
   const candidates = await prisma.student.findMany({
     where: { dateOfBirth },
-    select: { id: true, firstName: true, lastName: true, admissionNumber: true, dateOfBirth: true },
+    select: { id: true, firstName: true, lastName: true, dateOfBirth: true },
   });
 
   const target = normalizedName(firstName, lastName);

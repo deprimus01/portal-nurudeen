@@ -27,6 +27,7 @@ import searchRoutes from './routes/search.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import notificationsRoutes from './routes/notifications.routes.js';
 import cronRoutes from './routes/cron.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
 
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
 for (const key of requiredEnvVars) {
@@ -103,6 +104,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/cron', cronRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 app.use(errorHandler);

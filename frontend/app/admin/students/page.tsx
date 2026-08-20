@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   CheckCircle2, KeyRound, MessageSquare, Pencil, Plus, Search, UploadCloud, UserMinus, UserPlus, Users, X,
@@ -14,6 +14,16 @@ import { useLanguage } from '../../../lib/i18n/language-context';
 import { getErrorMessage } from '../../../lib/errors';
 import { DataTable, DataTableColumn } from '../../../components/ui/table/DataTable';
 import type { ActionMenuItem } from '../../../components/ui/table/ActionMenu';
+
+const PAGE_SIZE = 10;
+const SORT_KEY_MAP: Record<string, string> = { name: 'name', class: 'class', status: 'status' };
+
+interface StudentsPageResponse {
+  data: Student[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const RELATIONSHIP_OPTIONS = ['FATHER', 'MOTHER', 'GUARDIAN', 'OTHER'];
@@ -30,7 +40,6 @@ interface GuardianRow {
 }
 
 const EMPTY_STUDENT = {
-  admissionNumber: '',
   firstName: '',
   lastName: '',
   otherNames: '',
@@ -63,6 +72,9 @@ export default function StudentsPage() {
     return new URLSearchParams(window.location.search).get('q') || '';
   });
   const [classFilter, setClassFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
   const [credentialsBanner, setCredentialsBanner] = useState<{
@@ -70,11 +82,45 @@ export default function StudentsPage() {
     items: { email: string; tempPassword: string }[];
   } | null>(null);
 
-  async function loadStudents(q = '') {
+  async function loadStudents(opts?: {
+    q?: string;
+    classId?: string;
+    page?: number;
+    sort?: { key: string; dir: 'asc' | 'desc' } | null;
+  }) {
+    const q = opts?.q ?? search;
+    const classId = opts?.classId ?? classFilter;
+    let pageToLoad = opts?.page ?? page;
+    const sortToUse = opts?.sort !== undefined ? opts.sort : sort;
+
     setLoading(true);
     try {
-      const data = await api.get<Student[]>(`/api/students${q ? `?search=${encodeURIComponent(q)}` : ''}`);
-      setStudents(data);
+      const fetchPage = async (p: number) => {
+        const params = new URLSearchParams();
+        if (q) params.set('search', q);
+        if (classId !== 'ALL') params.set('classId', classId);
+        params.set('page', String(p));
+        params.set('pageSize', String(PAGE_SIZE));
+        if (sortToUse) {
+          params.set('sortKey', SORT_KEY_MAP[sortToUse.key] || 'name');
+          params.set('sortDir', sortToUse.dir);
+        }
+        return api.get<StudentsPageResponse>(`/api/students?${params.toString()}`);
+      };
+
+      let res = await fetchPage(pageToLoad);
+      // If a mutation (withdraw, filter change) left us past the last
+      // page for the new result set, snap back to the last valid page
+      // instead of showing an empty table with results left un-shown.
+      const computedTotalPages = Math.max(1, Math.ceil(res.total / PAGE_SIZE));
+      if (pageToLoad > computedTotalPages) {
+        pageToLoad = computedTotalPages;
+        res = await fetchPage(pageToLoad);
+      }
+
+      setStudents(res.data);
+      setTotal(res.total);
+      setPage(pageToLoad);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load.'));
     } finally {
@@ -83,7 +129,7 @@ export default function StudentsPage() {
   }
 
   useEffect(() => {
-    loadStudents(search);
+    loadStudents({ page: 1 });
     api.get<SchoolClass[]>('/api/classes').then(setClasses).catch(() => {});
     api.get<Guardian[]>('/api/guardians').then(setGuardianOptions).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,7 +181,7 @@ export default function StudentsPage() {
       }
 
       closeForm();
-      await loadStudents(search);
+      await loadStudents();
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to save.'));
     } finally {
@@ -153,7 +199,6 @@ export default function StudentsPage() {
 
   function startEdit(s: any) {
     setStudentForm({
-      admissionNumber: s.admissionNumber || '',
       firstName: s.firstName || '',
       lastName: s.lastName || '',
       otherNames: s.otherNames || '',
@@ -176,7 +221,7 @@ export default function StudentsPage() {
         heading: 'Portal account created',
         items: [{ email: result.loginEmail, tempPassword: result.tempPassword }],
       });
-      await loadStudents(search);
+      await loadStudents();
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to provision account.'));
     }
@@ -210,7 +255,7 @@ export default function StudentsPage() {
     setError(null);
     try {
       await api.delete(`/api/students/${s.id}`);
-      await loadStudents(search);
+      await loadStudents();
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to withdraw student.'));
     } finally {
@@ -227,16 +272,11 @@ export default function StudentsPage() {
     setError(null);
     try {
       await Promise.all(active.map((s) => api.delete(`/api/students/${s.id}`)));
-      await loadStudents(search);
+      await loadStudents();
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to withdraw selected students.'));
     }
   }
-
-  const filteredStudents = useMemo(() => {
-    if (classFilter === 'ALL') return students;
-    return students.filter((s: any) => s.currentClass?.id === classFilter);
-  }, [students, classFilter]);
 
   return (
     <div>
@@ -330,14 +370,6 @@ export default function StudentsPage() {
                   {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="admissionNumber">{t('fields.admissionNumber')}</label>
-                <input id="admissionNumber" required placeholder="e.g. 1, 2, 3…" value={studentForm.admissionNumber}
-                  onChange={(e) => setStudentForm({ ...studentForm, admissionNumber: e.target.value })} />
-                <p style={{ fontSize: '0.78rem', color: 'var(--muted-2)', margin: '0.3rem 0 0' }}>
-                  Numbered within the selected class — the same number can be reused across different classes.
-                </p>
-              </div>
             </div>
 
             {!editingId && (
@@ -422,25 +454,41 @@ export default function StudentsPage() {
 
       {students.length === 0 && error && !loading ? (
         <div className="table-wrap">
-          <ErrorState description={error} onRetry={() => loadStudents(search)} />
+          <ErrorState description={error} onRetry={() => loadStudents()} />
         </div>
       ) : (
         <DataTable<any>
-          rows={filteredStudents}
+          rows={students}
           getRowId={(s) => s.id}
           loading={loading}
           selectable
           bulkActions={[{ label: 'Withdraw selected', icon: UserMinus, danger: true, onClick: handleBulkWithdraw }]}
           searchValue={search}
-          onSearchChange={(v) => { setSearch(v); loadStudents(v); }}
-          searchPlaceholder="Search by name or serial number…"
+          onSearchChange={(v) => { setSearch(v); loadStudents({ q: v, page: 1 }); }}
+          searchPlaceholder="Search by name…"
+          serverPagination={{
+            page,
+            totalCount: total,
+            onPageChange: (p) => loadStudents({ page: p }),
+            sort,
+            onSortChange: (s) => { setSort(s); loadStudents({ sort: s, page: 1 }); },
+          }}
           filters={
             <>
-              <button className={`filter-chip${classFilter === 'ALL' ? ' active' : ''}`} onClick={() => setClassFilter('ALL')} type="button">
+              <button
+                className={`filter-chip${classFilter === 'ALL' ? ' active' : ''}`}
+                onClick={() => { setClassFilter('ALL'); loadStudents({ classId: 'ALL', page: 1 }); }}
+                type="button"
+              >
                 All classes
               </button>
               {classes.slice(0, 6).map((c) => (
-                <button key={c.id} className={`filter-chip${classFilter === c.id ? ' active' : ''}`} onClick={() => setClassFilter(c.id)} type="button">
+                <button
+                  key={c.id}
+                  className={`filter-chip${classFilter === c.id ? ' active' : ''}`}
+                  onClick={() => { setClassFilter(c.id); loadStudents({ classId: c.id, page: 1 }); }}
+                  type="button"
+                >
                   {c.name}
                 </button>
               ))}
@@ -485,22 +533,17 @@ export default function StudentsPage() {
                   <span className="shell-avatar" style={{ width: 30, height: 30, fontSize: 11 }}>
                     {initialsFor(s.firstName, s.lastName)}
                   </span>
-                  <span style={{ fontWeight: 600 }}>{s.firstName} {s.lastName}</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {s.firstName} {s.lastName}
+                    {s.nameTag && <span style={{ fontWeight: 400, color: 'var(--muted)' }}>{s.nameTag}</span>}
+                  </span>
                 </span>
               ),
             },
             {
-              key: 'admissionNumber',
-              label: t('fields.admissionNumber'),
-              cardRole: 'subtitle',
-              cardLabel: '',
-              sortAccessor: (s: any) => s.admissionNumber,
-              className: 'mono',
-              render: (s: any) => <span className="mono" style={{ color: 'var(--muted)' }}>{s.admissionNumber}</span>,
-            },
-            {
               key: 'class',
               label: t('fields.class'),
+              cardRole: 'subtitle',
               sortAccessor: (s: any) => s.currentClass?.name || '',
               render: (s: any) => s.currentClass?.name || '—',
             },

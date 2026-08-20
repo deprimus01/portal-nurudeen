@@ -9,7 +9,6 @@ export const importRecordCorrectionSchema = z.object({
   firstName: z.string().trim().max(60).optional(),
   lastName: z.string().trim().max(60).optional(),
   otherNames: z.string().trim().max(60).optional(),
-  admissionNumber: z.string().trim().max(30).optional(),
   dateOfBirth: z.coerce.date().optional(),
   gender: z.enum(['MALE', 'FEMALE']).optional(),
   classId: z.string().cuid().optional(),

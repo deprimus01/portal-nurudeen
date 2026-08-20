@@ -24,7 +24,6 @@ interface GuardianProfile {
       id: string;
       firstName: string;
       lastName: string;
-      admissionNumber: string;
       currentClass?: { name: string } | null;
     };
   }[];
@@ -73,7 +72,7 @@ export default function GuardianDashboardPage() {
                     {sg.student.firstName} {sg.student.lastName}
                   </div>
                   <div className="ti-sub">
-                    {sg.student.currentClass?.name || 'No class assigned'} · {sg.student.admissionNumber}
+                    {sg.student.currentClass?.name || 'No class assigned'}
                   </div>
                 </div>
               </div>

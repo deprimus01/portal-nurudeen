@@ -10,6 +10,7 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { generateStudentLoginEmail } from '../src/lib/studentLogin.js';
 
 const prisma = new PrismaClient();
 
@@ -203,10 +204,15 @@ async function seedDemoAccounts() {
   }
 
   // Student — linked to the demo guardian, with its own portal account
-  // using the same synthetic-email pattern as the real provision-account
-  // route (see routes/students.routes.js).
+  // using the same name-based login pattern as the real provision-account
+  // route (see lib/studentLogin.js). admissionNumber is purely an internal
+  // DB uniqueness key now (this school doesn't track serial numbers) - the
+  // fixed value here is just for idempotent re-seeding, never shown or
+  // used for login.
   const admissionNumber = 'DEMO-STU-001';
-  let student = await prisma.student.findUnique({ where: { admissionNumber } });
+  // Not a real unique field on its own (only [currentClassId,
+  // admissionNumber] together is) - findFirst instead of findUnique.
+  let student = await prisma.student.findFirst({ where: { admissionNumber } });
   if (!student) {
     student = await prisma.student.create({
       data: {
@@ -232,10 +238,9 @@ async function seedDemoAccounts() {
     console.log('Demo student already exists — skipping.');
   }
 
-  const loginDomain = process.env.STUDENT_LOGIN_EMAIL_DOMAIN || 'students.portal.local';
-  const studentLoginEmail = `${admissionNumber.toLowerCase()}@${loginDomain}`;
   const existingStudentUser = await prisma.user.findUnique({ where: { studentId: student.id } });
   if (!existingStudentUser) {
+    const studentLoginEmail = await generateStudentLoginEmail(prisma, student.firstName, student.lastName);
     await prisma.user.create({
       data: {
         email: studentLoginEmail,

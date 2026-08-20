@@ -8,7 +8,7 @@ import { getErrorMessage } from '../lib/errors';
 
 interface RosterEntry {
   studentId: string;
-  admissionNumber: string;
+  nameTag: string;
   firstName: string;
   lastName: string;
   score: number | null;
@@ -140,7 +140,7 @@ export function ResultsEntry({
           ) : (
             <>
               <table>
-                <thead><tr><th>Student</th><th>Admission #</th><th>Score (0–100)</th></tr></thead>
+                <thead><tr><th>Student</th><th>Score (0–100)</th></tr></thead>
                 <tbody>
                   {roster.map((row) => (
                     <tr key={row.studentId}>
@@ -148,9 +148,11 @@ export function ResultsEntry({
                         <div className="shell-avatar" style={{ width: 30, height: 30, fontSize: 11 }}>
                           {initialsFor(row.firstName, row.lastName)}
                         </div>
-                        <span style={{ fontWeight: 600 }}>{row.firstName} {row.lastName}</span>
+                        <span style={{ fontWeight: 600 }}>
+                          {row.firstName} {row.lastName}
+                          {row.nameTag && <span style={{ fontWeight: 400, color: 'var(--muted)' }}>{row.nameTag}</span>}
+                        </span>
                       </td>
-                      <td className="mono" style={{ color: 'var(--muted)' }}>{row.admissionNumber}</td>
                       <td>
                         <input
                           type="number"

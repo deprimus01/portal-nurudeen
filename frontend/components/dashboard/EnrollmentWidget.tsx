@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Layers } from 'lucide-react';
 import { api } from '../../lib/api';
-import type { Enrollment, Term } from '../../lib/types';
 import { EmptyState } from '../ui/EmptyState';
 import { DashboardWidget } from '../ui/DashboardWidget';
 import { BarList } from '../ui/charts/BarList';
@@ -12,15 +11,29 @@ import { getErrorMessage } from '../../lib/errors';
 
 const COLORS = ['var(--blue)', 'var(--navy)', 'var(--gold)', 'var(--success)', 'var(--warn)', 'var(--danger)'];
 
+interface SummaryTerm {
+  id: string;
+  name: string;
+  sessionName: string;
+  isCurrent: boolean;
+  enrollmentCount: number;
+}
+
+interface EnrollmentSummaryResponse {
+  terms: SummaryTerm[];
+  currentTermId: string | null;
+  classDistribution: { label: string; value: number }[];
+}
+
 /**
- * Enrollment overview built from /api/enrollments (already filterable by
- * termId) and /api/academic/terms - both endpoints the Enrollments page
- * already uses. Class distribution is for the current term; the trend
- * counts active enrollments per term for up to the last 6 terms.
+ * Enrollment overview backed by GET /api/enrollments/summary — a single
+ * aggregate request computed server-side. Previously this fetched all
+ * terms then called /api/enrollments once per recent term (1 + up to 6
+ * requests) to build the same chart data client side; the numbers shown
+ * are unchanged.
  */
 export function EnrollmentWidget({ href, title = 'Enrollment' }: { href: string; title?: string }) {
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [byTerm, setByTerm] = useState<Map<string, Enrollment[]>>(new Map());
+  const [summary, setSummary] = useState<EnrollmentSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,50 +41,33 @@ export function EnrollmentWidget({ href, title = 'Enrollment' }: { href: string;
     setLoading(true);
     setError(null);
     api
-      .get<Term[]>('/api/academic/terms')
-      .then(async (allTerms) => {
-        const sorted = [...allTerms].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-        const recent = sorted.slice(-6);
-        setTerms(recent);
-        const entries = await Promise.all(
-          recent.map((t) =>
-            api
-              .get<Enrollment[]>(`/api/enrollments?termId=${t.id}`)
-              .then((e): readonly [string, Enrollment[]] => [t.id, e])
-              .catch((): readonly [string, Enrollment[]] => [t.id, []]),
-          ),
-        );
-        setByTerm(new Map(entries));
-      })
+      .get<EnrollmentSummaryResponse>('/api/enrollments/summary')
+      .then(setSummary)
       .catch((err) => setError(getErrorMessage(err, 'Failed to load enrollment data.')))
       .finally(() => setLoading(false));
   }
 
   useEffect(() => { load(); }, []);
 
-  const currentTerm = useMemo(() => terms.find((t) => t.isCurrent) || terms[terms.length - 1], [terms]);
+  const terms = summary?.terms ?? [];
+  const currentTerm = useMemo(
+    () => terms.find((t) => t.id === summary?.currentTermId),
+    [terms, summary?.currentTermId],
+  );
 
-  const classDistribution = useMemo(() => {
-    if (!currentTerm) return [];
-    const list = byTerm.get(currentTerm.id) || [];
-    const counts = new Map<string, number>();
-    for (const e of list as any[]) {
-      const name = e.class?.name || 'Unassigned';
-      counts.set(name, (counts.get(name) || 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([label, value], i) => ({ label, value, color: COLORS[i % COLORS.length] }));
-  }, [byTerm, currentTerm]);
+  const classDistribution = useMemo(
+    () => (summary?.classDistribution ?? []).map((d, i) => ({ ...d, color: COLORS[i % COLORS.length] })),
+    [summary],
+  );
 
   const trend = useMemo(
     () =>
       terms.map((t) => ({
         x: t.name.length > 6 ? t.name.slice(0, 6) : t.name,
-        fullLabel: `${t.session?.name || ''} ${t.name}`.trim(),
-        y: (byTerm.get(t.id) || []).length,
+        fullLabel: `${t.sessionName} ${t.name}`.trim(),
+        y: t.enrollmentCount,
       })),
-    [terms, byTerm],
+    [terms],
   );
 
   return (

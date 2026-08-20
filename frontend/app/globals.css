@@ -366,6 +366,11 @@ tbody tr:last-child td {
   min-width: 0;
   padding: 1.25rem 1.75rem 3rem;
   max-width: 1280px;
+  /* Positioned ancestor for PageTransition's mode="popLayout": the page
+     that's animating out is taken out of flow (position: absolute) and
+     scoped to this container so it doesn't jump to the viewport corner
+     during the brief enter/exit overlap. */
+  position: relative;
 }
 
 @media (min-width: 1024px) {

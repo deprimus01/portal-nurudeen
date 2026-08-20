@@ -1,7 +1,13 @@
 import { z } from 'zod';
 
 export const createStudentSchema = z.object({
-  admissionNumber: z.string().trim().min(1, 'Serial number is required.').max(30),
+  // Optional on input - auto-assigned server-side (see students.routes.js
+  // POST handler) as the next available number within the student's
+  // class. This school doesn't track admission/serial numbers, so no
+  // form ever collects it; it exists purely as an internal per-class
+  // uniqueness key. Still accepted here in case a future internal tool
+  // needs to set it explicitly.
+  admissionNumber: z.string().trim().min(1).max(30).optional(),
   firstName: z.string().trim().min(1, 'First name is required.').max(60),
   lastName: z.string().trim().min(1, 'Last name is required.').max(60),
   otherNames: z.string().trim().max(60).optional(),

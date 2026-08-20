@@ -17,7 +17,6 @@ interface StudentProfile {
   id?: string;
   firstName?: string;
   lastName?: string;
-  admissionNumber?: string;
   currentClass?: { name: string } | null;
 }
 
@@ -53,7 +52,7 @@ export default function StudentDashboardPage() {
                 {profile?.firstName} {profile?.lastName}
               </div>
               <div className="ti-sub">
-                {profile?.admissionNumber} · {profile?.currentClass?.name || 'Not assigned yet'}
+                {profile?.currentClass?.name || 'Not assigned yet'}
               </div>
             </div>
           </div>
