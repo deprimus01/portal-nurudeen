@@ -28,3 +28,14 @@ export const aiRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many AI requests this hour. Please try again later.' },
 });
+
+// ADR-001 §6 — "Rate-limit and monitor the OAuth endpoints... they become
+// a new, valuable target the moment the CMS depends on them." Applied to
+// every /oauth/* route (authorize, token, userinfo) as they're built.
+export const oauthRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again shortly.' },
+});

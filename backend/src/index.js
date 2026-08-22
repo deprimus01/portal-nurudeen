@@ -28,6 +28,8 @@ import aiRoutes from './routes/ai.routes.js';
 import notificationsRoutes from './routes/notifications.routes.js';
 import cronRoutes from './routes/cron.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import oauthRoutes from './routes/oauth.routes.js';
+import websiteAccessRoutes from './routes/websiteAccess.routes.js';
 
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
 for (const key of requiredEnvVars) {
@@ -105,6 +107,13 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+// Called by the CMS's backend, server-to-server, with the visiting SMS
+// admin's OAuth access token — see websiteAccess.routes.js.
+app.use('/api/admin/website-access', websiteAccessRoutes);
+// Mounted at /oauth (not /api/oauth) to match the endpoint paths ADR-001
+// §3 documents for the CMS to call: /oauth/authorize, /oauth/token,
+// /oauth/userinfo, plus this build's /oauth/jwks.json for key discovery.
+app.use('/oauth', oauthRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 app.use(errorHandler);

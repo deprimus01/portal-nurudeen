@@ -69,8 +69,39 @@ model User {
   authoredAnnouncements Announcement[]
   notifications     Notification[]
   importBatches     ImportBatch[]
+  websiteClaims     WebsiteClaim[]      @relation("WebsiteClaimHolder")
+  websiteClaimsGranted WebsiteClaim[]   @relation("WebsiteClaimGrantedBy")
 
   @@index([role])
+}
+
+// Scoped SSO permission claims for the CMS (nurudeen-schools) — ADR-001 §5.
+// An SMS ADMIN does NOT automatically receive any website.* claim; a
+// super-admin must deliberately grant one, same as ADR-001 §169 intends.
+// One row per (user, claim) — not a single JSON blob — so grant/revoke is
+// a plain insert/delete and "does this user hold claim X" is a plain
+// indexed lookup, both used on every /oauth/token issuance and re-check.
+enum WebsiteClaimType {
+  website_news_write
+  website_news_publish
+  website_events_write
+  website_gallery_write
+  website_settings_write
+  website_access_manage
+}
+
+model WebsiteClaim {
+  id        String           @id @default(cuid())
+  user      User             @relation("WebsiteClaimHolder", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  claim     WebsiteClaimType
+
+  grantedBy   User   @relation("WebsiteClaimGrantedBy", fields: [grantedById], references: [id])
+  grantedById String
+  grantedAt   DateTime @default(now())
+
+  @@unique([userId, claim])
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
