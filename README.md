@@ -333,4 +333,4 @@ changes.
   `STUDENT_LOGIN_EMAIL_DOMAIN` to something under the real domain. All
   three are env var changes only - no code touched.
 
-NODE_OPTIONS=--dns-result-order=ipv4first npx prisma migrate dev --name init 
+NODE_OPTIONS=--dns-result-order=ipv4first npx prisma migrate dev --name init

@@ -10,7 +10,7 @@ import type { SessionUser } from './types';
 interface AuthContextValue {
   user: SessionUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, next?: string) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
 }
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string, next?: string) {
     const result = await api.post<{ token: string; user: SessionUser }>('/api/auth/login', {
       email,
       password,
@@ -51,7 +51,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(result.token);
     await refresh();
     if (result.user.mustResetPassword) {
+      // A password reset is required before continuing anywhere else —
+      // including resuming an in-progress CMS SSO handoff. `next` is
+      // deliberately dropped here rather than carried through to after
+      // the reset; re-visiting the CMS's login link is the simpler path
+      // and avoids the reset-password page needing to know about OAuth.
       router.push('/reset-password');
+    } else if (next && next.startsWith('/')) {
+      // Only ever an internal path (enforced by the leading-slash check)
+      // — never redirect to an attacker-supplied external URL from a
+      // query param.
+      router.push(next);
     } else {
       router.push('/admin');
     }

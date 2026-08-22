@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, ShieldCheck, BookOpen, GraduationCap, Users } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
@@ -12,10 +13,16 @@ import { getErrorMessage } from '../../lib/errors';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-export default function LoginPage() {
+function LoginForm() {
   const { login } = useAuth();
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const searchParams = useSearchParams();
+  // Set by app/oauth/authorize/page.tsx when it needs to send an
+  // unauthenticated visitor here first — e.g. /login?next=/oauth/authorize%3Fclient_id...
+  // so the CMS SSO handoff can resume right where it left off once this
+  // login succeeds. Absent for a normal, non-SSO login.
+  const next = searchParams.get('next') || undefined;
 
   // Login screen is light-mode only, regardless of the visitor's stored
   // theme preference (no dark-mode toggle is shown here).
@@ -34,7 +41,7 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
+      await login(email, password, next);
     } catch (err) {
       setError(getErrorMessage(err, 'Something went wrong.'));
     } finally {
@@ -164,5 +171,13 @@ export default function LoginPage() {
         </p>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

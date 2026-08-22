@@ -140,4 +140,4 @@ latent gap for two same-named students in the same class.
 
 - The visual disambiguation mechanism (4.4) — to be decided separately.
 - Any changes to teacher, guardian, or admin authentication.
-- Migration strategy for already-existing student accounts. 
+- Migration strategy for already-existing student accounts.
